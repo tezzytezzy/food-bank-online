@@ -116,10 +116,13 @@ export default async function DashboardPage() {
                                     </div>
                                 </div>
                                 <div className="pt-4 border-t border-slate-100 mt-2">
-                                    <button className="w-full flex items-center justify-center gap-2 border border-slate-200 text-slate-700 font-medium py-2 rounded-md hover:bg-slate-50 transition-colors">
+                                    <a
+                                        href={`/dashboard/sessions/create?template_id=${template.id}`}
+                                        className="w-full flex items-center justify-center gap-2 border border-slate-200 text-slate-700 font-medium py-2 rounded-md hover:bg-slate-50 transition-colors"
+                                    >
                                         <Calendar className="w-4 h-4" />
                                         Schedule Session
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                         ))}

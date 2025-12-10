@@ -2,20 +2,42 @@ import { createClient } from "@/lib/supabase";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { LogIn } from "lucide-react";
+import HomeFilters from "@/components/home-filters";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const supabase = await createClient();
 
-  // Fetch 'public' sessions (assuming RLS allows or we use a workaround)
-  // For now, standard fetch.
-  // We also fetch organisations for the filters.
+  // Parse search params
+  const country = typeof searchParams.country === 'string' ? searchParams.country : undefined;
+  const state = typeof searchParams.state === 'string' ? searchParams.state : undefined;
+  const city = typeof searchParams.city === 'string' ? searchParams.city : undefined;
 
-  // Note: If RLS blocks this, data will be empty.
-  const { data: sessions, error: sessionsError } = await supabase
+  // 1. Fetch Unique Locations for Filters
+  // We need to get all distinct locations from organisations.
+  // Note: Supabase doesn't have a "DISTINCT" select easily on client, so we fetch desired columns and dedupe in JS.
+  // Ideally, use an RPC or a view for performance with large datasets.
+  const { data: allOrgs } = await supabase
+    .from("organisations")
+    .select("country, state, city")
+    .order("country");
+
+  const countries = Array.from(new Set(allOrgs?.map(o => o.country).filter(Boolean) || []));
+
+  // Filter states based on selected country (if any)
+  const availableStates = allOrgs?.filter(o => !country || o.country === country);
+  const states = Array.from(new Set(availableStates?.map(o => o.state).filter(Boolean) || []));
+
+  // Filter cities based on selected state (if any)
+  const availableCities = availableStates?.filter(o => !state || o.state === state);
+  const cities = Array.from(new Set(availableCities?.map(o => o.city).filter(Boolean) || []));
+
+
+  // 2. Build Query
+  let query = supabase
     .from("sessions")
     .select(`
       *,
-      organisations (
+      organisations!inner (
         name,
         country,
         state,
@@ -26,15 +48,15 @@ export default async function Home() {
         dietary_info
       )
     `)
-    .eq("status", "Scheduled")
-    .gte("session_date", new Date().toISOString());
+    .in("status", ["scheduled", "open"]) // User requested Scheduled AND Open
+    .gte("session_date", new Date().toISOString().split('T')[0]); // Future or Today
 
-  // Derive unique locations for filters (conceptually)
-  // In a real app we might want a distinct query.
-  const { data: orgs } = await supabase
-    .from("organisations")
-    .select("country, state, city")
-    .order("country");
+  // Apply Filters
+  if (country) query = query.eq('organisations.country', country);
+  if (state) query = query.eq('organisations.state', state);
+  if (city) query = query.eq('organisations.city', city);
+
+  const { data: sessions, error } = await query;
 
   return (
     <main className="min-h-screen flex flex-col items-center bg-slate-50 text-slate-900">
@@ -71,29 +93,20 @@ export default async function Home() {
           </p>
         </div>
 
-        {/* Filters Placeholder - Ideally this filters the list below */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-8 max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <select className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-              <option value="">All Countries</option>
-              {/* Dynamically populate later */}
-            </select>
-            <select className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-              <option value="">All States</option>
-            </select>
-            <select className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-              <option value="">All Cities</option>
-            </select>
-          </div>
-        </div>
+        {/* Filters Component */}
+        <HomeFilters
+          countries={countries}
+          states={states}
+          cities={cities}
+        />
 
         {/* Sessions List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {(!sessions || sessions.length === 0) ? (
             <div className="col-span-full text-center py-12 text-slate-500">
               <p>No upcoming sessions found matching your criteria.</p>
-              {process.env.NODE_ENV === 'development' && (
-                <p className="text-xs mt-2 text-amber-600">Note: RLS policies might be hiding data if you are not an org member.</p>
+              {process.env.NODE_ENV === 'development' && error && (
+                <p className="text-xs mt-2 text-red-500">Error: {error.message}</p>
               )}
             </div>
           ) : (
@@ -104,20 +117,22 @@ export default async function Home() {
                     <h3 className="font-semibold text-lg text-slate-900">{session.organisations?.name || 'Unknown Org'}</h3>
                     <p className="text-sm text-slate-500">{session.organisations?.city}, {session.organisations?.country}</p>
                   </div>
-                  <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 text-slate-900">
-                    {session.status}
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors
+                    ${session.status === 'open' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-900 border-slate-200'}
+                  `}>
+                    {session.status === 'scheduled' ? 'Scheduled' : 'Open / Active'}
                   </span>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-slate-700">
-                    <strong className="font-medium">Date:</strong> {new Date(session.session_date).toLocaleDateString()}
+                    <strong className="font-medium">Date:</strong> {new Date(session.session_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                   <p className="text-sm text-slate-700">
-                    <strong className="font-medium">Time:</strong> {session.start_time}
+                    <strong className="font-medium">Time:</strong> {session.start_time ? session.start_time.substring(0, 5) : 'TBD'}
                   </p>
                   {session.templates?.dietary_info && (
                     <p className="text-xs text-slate-500 mt-2">
-                      {session.templates.dietary_info}
+                      <strong className="font-medium text-slate-700">Dietary Info:</strong> {session.templates.dietary_info}
                     </p>
                   )}
                 </div>

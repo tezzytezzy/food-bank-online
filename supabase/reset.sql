@@ -62,7 +62,8 @@ CREATE TABLE public.sessions (
     template_id uuid REFERENCES public.templates (id) NOT NULL,
     session_date date NOT NULL,
     start_time time without time zone NOT NULL, -- Override or copy from template
-    status text CHECK (status IN ('Draft', 'Scheduled', 'Complete', 'Cancelled')) DEFAULT 'Scheduled' NOT NULL,
+    display_name text, -- Optional friendly name e.g. "Christmas Special"
+    status text CHECK (status IN ('scheduled', 'open', 'full', 'completed', 'cancelled')) DEFAULT 'scheduled' NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
