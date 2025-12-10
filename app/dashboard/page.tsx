@@ -83,10 +83,10 @@ export default async function DashboardPage() {
                     <h2 className="text-2xl font-bold text-slate-900">Session Templates</h2>
                     {/* If has templates, show crate session button? Prompt: "Active State: List all existing templates and a button to create a new session based on a template." -> Actually, usually you create a session FROM a template. */}
                     {templates && templates.length > 0 && (
-                        <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
+                        <a href="/dashboard/templates/create" className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
                             <Plus className="w-4 h-4" />
                             New Template
-                        </button>
+                        </a>
                     )}
                 </div>
 
@@ -98,10 +98,10 @@ export default async function DashboardPage() {
                         </div>
                         <h3 className="text-lg font-medium text-slate-900 mb-1">No templates yet</h3>
                         <p className="text-slate-500 mb-6 max-w-sm">Create templates to quickly schedule recurring food bank sessions.</p>
-                        <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
+                        <a href="/dashboard/templates/create" className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 transition-colors">
                             <Plus className="w-4 h-4" />
                             Create Your First Session Template
-                        </button>
+                        </a>
                     </div>
                 ) : (
                     /* Active State */

@@ -39,8 +39,19 @@ CREATE TABLE public.templates (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     org_id uuid REFERENCES public.organisations (id) NOT NULL,
     name text NOT NULL,
-    default_time time without time zone,
-    default_duration integer,
+    
+    -- New Fields Integrated directly
+    ticket_type text CHECK (ticket_type IN ('Numeric', 'TimeAllotted')),
+    distribution_type text CHECK (distribution_type IN ('Sequential', 'NonSequential')),
+    
+    start_time time without time zone, -- Renamed from default_time, applies to all types?
+    -- Actually user said "Regardless of Ticket Type, the form should display and ask for Session Start Time."
+    
+    -- Config for specific types
+    max_numeric_tickets integer,
+    time_slots_config jsonb, -- { duration, count, capacity } (Removed start_time from here)
+    required_user_fields jsonb, -- Array of { label, type }
+    
     dietary_info text,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -50,7 +61,7 @@ CREATE TABLE public.sessions (
     org_id uuid REFERENCES public.organisations (id) NOT NULL,
     template_id uuid REFERENCES public.templates (id) NOT NULL,
     session_date date NOT NULL,
-    start_time time without time zone NOT NULL,
+    start_time time without time zone NOT NULL, -- Override or copy from template
     status text CHECK (status IN ('Draft', 'Scheduled', 'Complete', 'Cancelled')) DEFAULT 'Scheduled' NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -70,11 +81,6 @@ ON public.organisations FOR SELECT USING (
           AND org_members.user_id = (auth.jwt() ->> 'sub')
     )
 );
-
--- Note: INSERT is handled via RPC, but good to have a policy if we want manual inserts later?
--- For now, let's keep it restricted or allow it. 
--- To allow the RPC to work, the user needs execute permission, but the RPC is SECURITY DEFINER so it bypasses tables RLS.
--- We can leave standard policies restrictive if we want.
 
 -- Org Members
 ALTER TABLE public.org_members ENABLE ROW LEVEL SECURITY;
