@@ -36,6 +36,18 @@ export default function HomeFilters({ countries, states, cities }: HomeFiltersPr
         router.replace(`/?${params.toString()}`);
     };
 
+    const getStateLabel = (countryCode: string) => {
+        switch (countryCode) {
+            case 'US': return 'State';
+            case 'CA': return 'Province';
+            case 'UK': return 'County'; // or Region
+            case 'AU': return 'State';
+            default: return 'State / Province';
+        }
+    };
+
+    const stateLabel = getStateLabel(currentCountry);
+
     return (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-8 max-w-4xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -58,7 +70,7 @@ export default function HomeFilters({ countries, states, cities }: HomeFiltersPr
                     disabled={!currentCountry && states.length === 0}
                     className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <option value="">All States</option>
+                    <option value="">All {stateLabel}s</option>
                     {states.map(s => (
                         <option key={s} value={s}>{s}</option>
                     ))}
