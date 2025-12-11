@@ -49,7 +49,7 @@ export default async function Home({ searchParams }: { searchParams: { [key: str
       )
     `)
     .in("status", ["scheduled", "open"]) // User requested Scheduled AND Open
-    .gte("session_date", new Date().toISOString().split('T')[0]); // Future or Today
+    .gte("session_date", new Date().toLocaleDateString('en-CA')); // Future or Today (Local Time YYYY-MM-DD)
 
   // Apply Filters
   if (country) query = query.eq('organisations.country', country);
@@ -115,7 +115,7 @@ export default async function Home({ searchParams }: { searchParams: { [key: str
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-semibold text-lg text-slate-900">{session.organisations?.name || 'Unknown Org'}</h3>
-                    <p className="text-sm text-slate-500">{session.organisations?.city}, {session.organisations?.country}</p>
+                    <p className="text-sm text-slate-500">{session.organisations?.city}, {session.organisations?.state}, {session.organisations?.country}</p>
                   </div>
                   <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors
                     ${session.status === 'open' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-900 border-slate-200'}
@@ -125,7 +125,7 @@ export default async function Home({ searchParams }: { searchParams: { [key: str
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-slate-700">
-                    <strong className="font-medium">Date:</strong> {new Date(session.session_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    <strong className="font-medium">Date:</strong> {new Date(session.session_date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
                   </p>
                   <p className="text-sm text-slate-700">
                     <strong className="font-medium">Time:</strong> {session.start_time ? session.start_time.substring(0, 5) : 'TBD'}
