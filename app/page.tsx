@@ -68,7 +68,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
         <div className="flex items-center gap-4">
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-md text-sm font-medium hover:bg-slate-800 transition-colors">
+              <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-md text-sm font-medium hover:bg-slate-800 transition-colors cursor-pointer">
                 <LogIn className="w-4 h-4" />
                 Organisation Sign In
               </button>

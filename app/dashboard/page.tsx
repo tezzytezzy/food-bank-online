@@ -93,6 +93,7 @@ export default async function DashboardPage() {
                     <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">{role} Dashboard</p>
                 </div>
                 <div className="flex items-center gap-4">
+                    <a href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">Public Home</a>
                     <a href="/dashboard/team" className="text-sm font-medium text-slate-600 hover:text-slate-900">Team</a>
                     <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
                         {orgName.substring(0, 1)}

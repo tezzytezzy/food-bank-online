@@ -56,7 +56,8 @@ export default async function TeamPage() {
                     <h1 className="text-xl font-bold text-slate-900">Team Management</h1>
                     <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Manage your organisation members</p>
                 </div>
-                <div>
+                <div className="flex items-center gap-4">
+                    <a href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">Public Home</a>
                     <a href="/dashboard" className="text-sm font-medium text-slate-600 hover:text-slate-900">Back to Dashboard</a>
                 </div>
             </header>
@@ -89,8 +90,8 @@ export default async function TeamPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${member.role === 'Admin'
-                                                ? 'bg-purple-100 text-purple-700'
-                                                : 'bg-blue-100 text-blue-700'
+                                            ? 'bg-purple-100 text-purple-700'
+                                            : 'bg-blue-100 text-blue-700'
                                             }`}>
                                             {member.role === 'Admin' ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
                                             {member.role}
