@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -46,6 +46,28 @@ export default async function DashboardPage() {
         .eq('user_id', userId);
 
     if (!memberships || memberships.length === 0) {
+        // Fetch fresh user data from Clerk to check metadata
+        // We use clerkClient() here because sessionClaims requires specific dashboard config to include metadata
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        const metadata = user.publicMetadata as { org_id?: string };
+
+        if (metadata?.org_id) {
+            return (
+                <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <h2 className="text-xl font-bold text-slate-900">Setting up your account...</h2>
+                        <p className="text-slate-500">We are adding you to the organisation. This may take a moment.</p>
+                        <p className="text-xs text-slate-400 mt-4">If this persists, the system might be syncing.</p>
+                        <a href="/dashboard" className="mt-4 text-sm text-slate-600 underline cursor-pointer hover:text-slate-900 block">
+                            Check again
+                        </a>
+                    </div>
+                </div>
+            );
+        }
+
         redirect('/onboarding');
     }
 
@@ -71,7 +93,7 @@ export default async function DashboardPage() {
                     <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">{role} Dashboard</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button className="text-sm font-medium text-slate-600 hover:text-slate-900">Settings</button>
+                    <a href="/dashboard/team" className="text-sm font-medium text-slate-600 hover:text-slate-900">Team</a>
                     <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
                         {orgName.substring(0, 1)}
                     </div>

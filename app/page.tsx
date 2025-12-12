@@ -4,13 +4,14 @@ import Link from "next/link";
 import { LogIn } from "lucide-react";
 import HomeFilters from "@/components/home-filters";
 
-export default async function Home({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const supabase = await createClient();
 
   // Parse search params
-  const country = typeof searchParams.country === 'string' ? searchParams.country : undefined;
-  const state = typeof searchParams.state === 'string' ? searchParams.state : undefined;
-  const city = typeof searchParams.city === 'string' ? searchParams.city : undefined;
+  const params = await searchParams;
+  const country = typeof params.country === 'string' ? params.country : undefined;
+  const state = typeof params.state === 'string' ? params.state : undefined;
+  const city = typeof params.city === 'string' ? params.city : undefined;
 
   // 1. Fetch Unique Locations for Filters
   // We need to get all distinct locations from organisations.
