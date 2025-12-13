@@ -114,3 +114,41 @@ export async function getTemplates() {
 
     return data;
 }
+
+export async function cancelSession(sessionId: string) {
+    const { userId, getToken } = await auth();
+    if (!userId) throw new Error('Unauthorized');
+
+    const token = await getToken({ template: 'supabase' });
+    if (!token) throw new Error('No Supabase token found');
+
+    const { createServerClient } = await import("@supabase/ssr");
+    const sbClient = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() { return [] },
+                setAll() { }
+            },
+            global: {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        }
+    );
+
+    // Update the session status to 'cancelled'
+    const { error } = await sbClient
+        .from('sessions')
+        .update({ status: 'cancelled' })
+        .eq('id', sessionId);
+
+    if (error) {
+        console.error('Error cancelling session:', error);
+        throw new Error('Failed to cancel session');
+    }
+
+    revalidatePath('/dashboard');
+}

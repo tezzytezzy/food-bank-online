@@ -1,4 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { UserButton } from "@clerk/nextjs";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -44,10 +45,22 @@ export default async function TeamPage() {
     // List all members
     const { data: members, error } = await supabase
         .from('org_members')
-        .select('id, user_id, role, created_at') // Note: We don't have user details (email/name) in supabase yet easily, relies on Clerk. 
-        // Syncing user details is a separate task or we use client-side Clerk fetch.
-        // For MVP, we show User ID or Role.
+        .select('id, user_id, role, created_at')
         .eq('org_id', myMembership.org_id);
+
+    // Fetch user details from Clerk
+    const client = await clerkClient();
+    const userIds = members?.map(m => m.user_id) || [];
+
+    let usersMap = new Map<string, any>();
+    if (userIds.length > 0) {
+        try {
+            const users = await client.users.getUserList({ userId: userIds, limit: 100 });
+            users.data.forEach(u => usersMap.set(u.id, u));
+        } catch (err) {
+            console.error('Failed to fetch Clerk users:', err);
+        }
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -59,6 +72,7 @@ export default async function TeamPage() {
                 <div className="flex items-center gap-4">
                     <a href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">Public Home</a>
                     <a href="/dashboard" className="text-sm font-medium text-slate-600 hover:text-slate-900">Back to Dashboard</a>
+                    <UserButton afterSignOutUrl="/" />
                 </div>
             </header>
 
@@ -77,31 +91,49 @@ export default async function TeamPage() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="px-6 py-4 font-semibold text-slate-700">User ID</th>
+                                <th className="px-6 py-4 font-semibold text-slate-700">Name</th>
                                 <th className="px-6 py-4 font-semibold text-slate-700">Role</th>
                                 <th className="px-6 py-4 font-semibold text-slate-700">Joined</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {members?.map((member) => (
-                                <tr key={member.id} className="hover:bg-slate-50">
-                                    <td className="px-6 py-4 font-mono text-slate-600">
-                                        {member.user_id === userId ? <span className="font-bold text-slate-900">You</span> : member.user_id}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${member.role === 'Admin'
-                                            ? 'bg-purple-100 text-purple-700'
-                                            : 'bg-blue-100 text-blue-700'
-                                            }`}>
-                                            {member.role === 'Admin' ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                                            {member.role}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-500">
-                                        {new Date(member.created_at).toLocaleDateString()}
-                                    </td>
-                                </tr>
-                            ))}
+                            {members?.map((member) => {
+                                const clerkUser = usersMap.get(member.user_id);
+                                const displayName = clerkUser ? `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || clerkUser.emailAddresses[0]?.emailAddress || member.user_id : member.user_id;
+                                const joinedDate = new Date(member.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                                return (
+                                    <tr key={member.id} className="hover:bg-slate-50">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                                                    {displayName.substring(0, 2).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-slate-900">
+                                                        {member.user_id === userId ? `${displayName} (You)` : displayName}
+                                                    </p>
+                                                    {clerkUser?.emailAddresses?.[0]?.emailAddress && clerkUser.emailAddresses[0].emailAddress !== displayName && (
+                                                        <p className="text-xs text-slate-500">{clerkUser.emailAddresses[0].emailAddress}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${member.role === 'Admin'
+                                                ? 'bg-purple-100 text-purple-700'
+                                                : 'bg-blue-100 text-blue-700'
+                                                }`}>
+                                                {member.role === 'Admin' ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                                                {member.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-500">
+                                            {joinedDate}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             {(!members || members.length === 0) && (
                                 <tr>
                                     <td colSpan={3} className="px-6 py-8 text-center text-slate-500">No members found</td>
