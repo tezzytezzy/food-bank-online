@@ -12,6 +12,7 @@ export type TemplateData = {
     max_numeric_tickets?: number;
     time_slots_config?: {
         start_time: string;
+        end_time: string;
         slot_duration: number;
         total_slots: number;
         capacity_per_slot: number;
@@ -78,6 +79,7 @@ export async function createTemplate(data: TemplateData) {
         max_numeric_tickets: data.max_numeric_tickets || null,
         // Store Start Time in its own column
         start_time: data.time_slots_config?.start_time || null,
+        end_time: data.time_slots_config?.end_time || null,
         // Config JSON no longer needs start_time if we stored it above, but user interface passes it in one config object?
         // Let's rely on data passed.
         time_slots_config: data.time_slots_config ? {

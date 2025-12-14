@@ -46,14 +46,56 @@ export async function createSession(data: SessionData) {
     // We also need to check if the user has write access to that org (Admin/Editor).
     // The RLS policy for inserting into sessions requires this, but we need the org_id to insert.
 
+    // 1. Validate Template Access
+    // We need to fetch the template to ensure it exists and get its org_id.
+    // We also need to get the timing config to calculate end_time.
     const { data: template, error: templateError } = await sbClient
         .from('templates')
-        .select('org_id')
+        .select('org_id, start_time, end_time, ticket_type, time_slots_config')
         .eq('id', data.template_id)
         .single();
 
     if (templateError || !template) {
         throw new Error('Template not found or access denied.');
+    }
+
+    // 2. Calculate End Time
+    // We calculate duration from the template and apply it to the session's start_time
+    let sessionEndTime = null;
+
+    if (data.start_time) {
+        // Helper to convert HH:MM to minutes
+        const toMinutes = (time: string) => {
+            const [h, m] = time.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        // Helper to convert minutes back to HH:MM
+        const toTimeStr = (minutes: number) => {
+            const h = Math.floor(minutes / 60) % 24;
+            const m = minutes % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        };
+
+        let duration = 0;
+
+        if (template.ticket_type === 'TimeAllotted' && template.time_slots_config) {
+            // CAST config to any because Supabase types might be inferred loosely
+            const config = template.time_slots_config as any;
+            duration = (Number(config.slot_duration) || 0) * (Number(config.total_slots) || 0);
+        } else if (template.start_time && template.end_time) {
+            // Numeric: Duration = End - Start
+            duration = toMinutes(template.end_time) - toMinutes(template.start_time);
+        }
+
+        // Apply duration to session start time
+        if (duration > 0) {
+            const startMinutes = toMinutes(data.start_time);
+            sessionEndTime = toTimeStr(startMinutes + duration);
+        } else if (template.end_time) {
+            // Fallback: Use template end time directly if calculation fails
+            sessionEndTime = template.end_time;
+        }
     }
 
     // 2. Insert Session
@@ -62,6 +104,7 @@ export async function createSession(data: SessionData) {
         template_id: data.template_id,
         session_date: data.session_date,
         start_time: data.start_time,
+        end_time: sessionEndTime, // Add calculated end_time
         status: data.status,
     };
 

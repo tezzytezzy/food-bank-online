@@ -1,9 +1,11 @@
+
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { Plus, User, Shield } from "lucide-react";
+import { Plus, User, Shield, Trash2 } from "lucide-react";
+import { deleteMember } from "./actions";
 
 export default async function TeamPage() {
     const { userId, getToken } = await auth();
@@ -94,27 +96,35 @@ export default async function TeamPage() {
                                 <th className="px-6 py-4 font-semibold text-slate-700">Name</th>
                                 <th className="px-6 py-4 font-semibold text-slate-700">Role</th>
                                 <th className="px-6 py-4 font-semibold text-slate-700">Joined</th>
+                                {myMembership.role === 'Admin' && (
+                                    <th className="px-6 py-4 font-semibold text-slate-700 text-right">Actions</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {members?.map((member) => {
                                 const clerkUser = usersMap.get(member.user_id);
-                                const displayName = clerkUser ? `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || clerkUser.emailAddresses[0]?.emailAddress || member.user_id : member.user_id;
+                                const primaryName = clerkUser?.username ||
+                                    (`${clerkUser?.firstName || ''} ${clerkUser?.lastName || ''}`.trim()) ||
+                                    clerkUser?.emailAddresses?.[0]?.emailAddress ||
+                                    member.user_id;
+                                const email = clerkUser?.emailAddresses?.[0]?.emailAddress;
                                 const joinedDate = new Date(member.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                const isMe = member.user_id === userId;
 
                                 return (
                                     <tr key={member.id} className="hover:bg-slate-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                                                    {displayName.substring(0, 2).toUpperCase()}
+                                                    {(primaryName || '').substring(0, 2).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-slate-900">
-                                                        {member.user_id === userId ? `${displayName} (You)` : displayName}
+                                                    <p className="font-bold text-slate-900">
+                                                        {isMe ? `${primaryName} (You)` : primaryName}
                                                     </p>
-                                                    {clerkUser?.emailAddresses?.[0]?.emailAddress && clerkUser.emailAddresses[0].emailAddress !== displayName && (
-                                                        <p className="text-xs text-slate-500">{clerkUser.emailAddresses[0].emailAddress}</p>
+                                                    {email && (
+                                                        <p className="text-xs text-slate-500">{email}</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -131,12 +141,28 @@ export default async function TeamPage() {
                                         <td className="px-6 py-4 text-slate-500">
                                             {joinedDate}
                                         </td>
+                                        {myMembership.role === 'Admin' && (
+                                            <td className="px-6 py-4 text-right">
+                                                {!isMe && (
+                                                    <form action={deleteMember}>
+                                                        <input type="hidden" name="memberId" value={member.id} />
+                                                        <button
+                                                            type="submit"
+                                                            className="text-slate-400 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-slate-100"
+                                                            title="Delete member"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </form>
+                                                )}
+                                            </td>
+                                        )}
                                     </tr>
                                 );
                             })}
                             {(!members || members.length === 0) && (
                                 <tr>
-                                    <td colSpan={3} className="px-6 py-8 text-center text-slate-500">No members found</td>
+                                    <td colSpan={myMembership.role === 'Admin' ? 4 : 3} className="px-6 py-8 text-center text-slate-500">No members found</td>
                                 </tr>
                             )}
                         </tbody>
@@ -146,3 +172,4 @@ export default async function TeamPage() {
         </div>
     );
 }
+

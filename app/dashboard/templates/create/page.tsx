@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createTemplate, TemplateData } from '../actions';
 import { Loader2, Plus, Trash2, Clock, Hash, Users, List } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -21,6 +21,7 @@ export default function CreateTemplatePage() {
 
     // Time Config
     const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('');
     const [slotDuration, setSlotDuration] = useState<number | ''>(30); // minutes
     const [totalSlots, setTotalSlots] = useState<number | ''>(4);
     const [capacityPerSlot, setCapacityPerSlot] = useState<number | ''>(5);
@@ -49,6 +50,27 @@ export default function CreateTemplatePage() {
         setCustomFields(newFields);
     };
 
+    // Auto-calculate End Time for TimeAllotted
+    useEffect(() => {
+        if (ticketType === 'TimeAllotted' && startTime && slotDuration && totalSlots) {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const totalMinutesRaw = (typeof slotDuration === 'number' ? slotDuration : 0) * (typeof totalSlots === 'number' ? totalSlots : 0);
+
+            const startDate = new Date();
+            startDate.setHours(hours, minutes, 0, 0);
+
+            const endDate = new Date(startDate.getTime() + totalMinutesRaw * 60000);
+
+            const endHours = String(endDate.getHours()).padStart(2, '0');
+            const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+
+            setEndTime(`${endHours}:${endMinutes}`);
+        } else if (ticketType === 'TimeAllotted') {
+            // Reset or keep empty if inputs invalid
+            // check if just one changed
+        }
+    }, [ticketType, startTime, slotDuration, totalSlots]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -66,8 +88,11 @@ export default function CreateTemplatePage() {
                 if (!maxNumericTickets) throw new Error('Max tickets is required for numeric templates.');
                 payload.max_numeric_tickets = Number(maxNumericTickets);
                 // Also pass start time from state (it's now global)
+                if (!endTime) throw new Error('End time is required.');
+
                 payload.time_slots_config = {
                     start_time: startTime,
+                    end_time: endTime,
                     slot_duration: 0,
                     total_slots: 0,
                     capacity_per_slot: 0
@@ -78,6 +103,7 @@ export default function CreateTemplatePage() {
                 }
                 payload.time_slots_config = {
                     start_time: startTime,
+                    end_time: endTime,
                     slot_duration: Number(slotDuration),
                     total_slots: Number(totalSlots),
                     capacity_per_slot: Number(capacityPerSlot)
@@ -198,18 +224,39 @@ export default function CreateTemplatePage() {
                         <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
                             <Clock className="w-5 h-5 text-slate-500" /> Default Session Time
                         </h2>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Start Time
-                            </label>
-                            <input
-                                type="time"
-                                required
-                                value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
-                                className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
-                            />
-                            <p className="mt-1 text-xs text-slate-500">Default start time for sessions created from this template.</p>
+                        <div className="flex gap-6">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Start Time
+                                </label>
+                                <input
+                                    type="time"
+                                    required
+                                    value={startTime}
+                                    onChange={(e) => setStartTime(e.target.value)}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                                />
+                                <p className="mt-1 text-xs text-slate-500">Default start time.</p>
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    End Time
+                                </label>
+                                <input
+                                    type="time"
+                                    required
+                                    value={endTime}
+                                    onChange={(e) => setEndTime(e.target.value)}
+                                    disabled={ticketType === 'TimeAllotted'}
+                                    className={cn(
+                                        "w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500",
+                                        ticketType === 'TimeAllotted' && "bg-slate-100 text-slate-500 cursor-not-allowed"
+                                    )}
+                                />
+                                <p className="mt-1 text-xs text-slate-500">
+                                    {ticketType === 'TimeAllotted' ? "Auto-calculated." : "Default end time."}
+                                </p>
+                            </div>
                         </div>
                     </div>
 

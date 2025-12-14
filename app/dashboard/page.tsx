@@ -145,7 +145,7 @@ export default async function DashboardPage() {
                                     <div className="space-y-2 text-sm text-slate-600">
                                         <div className="flex items-center gap-2">
                                             <Calendar className="w-4 h-4 text-slate-400" />
-                                            <span>{new Date(session.session_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                            <span>{new Date(session.session_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</span>
                                         </div>
                                         <div className="flex items-center gap-2 ml-6">
                                             <p>{session.start_time?.substring(0, 5)}</p>
