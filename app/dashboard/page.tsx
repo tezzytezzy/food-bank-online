@@ -148,7 +148,10 @@ export default async function DashboardPage() {
                                             <span>{new Date(session.session_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</span>
                                         </div>
                                         <div className="flex items-center gap-2 ml-6">
-                                            <p>{session.start_time?.substring(0, 5)}</p>
+                                            <p>
+                                                {session.start_time?.substring(0, 5)}
+                                                {session.end_time && ` - ${session.end_time.substring(0, 5)}`}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

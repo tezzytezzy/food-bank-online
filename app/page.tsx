@@ -63,7 +63,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
     <main className="min-h-screen flex flex-col items-center bg-slate-50 text-slate-900">
       {/* Header */}
       <header className="w-full max-w-7xl mx-auto px-6 py-4 flex justify-between items-center border-b border-slate-200 bg-white">
-        <h1 className="text-xl font-bold tracking-tight text-slate-800">Community Food Bank</h1>
+        <h1 className="text-xl font-bold tracking-tight text-slate-800">Food Bank Connect</h1>
 
         <div className="flex items-center gap-4">
           <SignedOut>
@@ -130,6 +130,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
                   </p>
                   <p className="text-sm text-slate-700">
                     <strong className="font-medium">Time:</strong> {session.start_time ? session.start_time.substring(0, 5) : 'TBD'}
+                    {session.end_time && ` - ${session.end_time.substring(0, 5)}`}
                   </p>
                   {session.templates?.dietary_info && (
                     <p className="text-xs text-slate-500 mt-2">
