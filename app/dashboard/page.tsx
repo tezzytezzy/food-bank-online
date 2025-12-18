@@ -1,5 +1,5 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -13,7 +13,41 @@ export default async function DashboardPage() {
         redirect('/sign-in');
     }
 
-    // Init Supabase with Token
+    const { orgId, orgRole } = await auth();
+
+    if (!orgId) {
+        // If user has no active org, Clerk middleware or <OrganizationSwitcher /> usually handles this,
+        // but we can redirect to a page forcing org selection/creation if needed.
+        // For now, let's assume if they are here, they might need to select one.
+        // However, the dashboard requires an org context.
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="text-center space-y-4">
+                    <h2 className="text-xl font-bold text-slate-900">Select an Organisation</h2>
+                    <OrganizationSwitcher
+                        hidePersonal={true}
+                        afterCreateOrganizationUrl="/dashboard"
+                        afterSelectOrganizationUrl="/dashboard"
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    // Initialize Clerk Client to fetch details not in token (like Name)
+    const client = await clerkClient();
+    let orgName = 'Organisation';
+    try {
+        const org = await client.organizations.getOrganization({ organizationId: orgId });
+        orgName = org.name;
+    } catch (e) {
+        console.error("Failed to fetch org details", e);
+    }
+
+    // Role mapping if needed (Clerk roles are 'org:admin', 'org:member')
+    const role = orgRole?.split(':')[1] || 'member';
+
+    // Init Supabase with Token (User is already authed via Middleware)
     const token = await getToken({ template: 'supabase' });
     const cookieStore = await cookies();
 
@@ -23,7 +57,7 @@ export default async function DashboardPage() {
         {
             cookies: {
                 getAll() { return cookieStore.getAll() },
-                setAll() { } // Read-only access here mostly, or allow set if needed
+                setAll() { }
             },
             global: {
                 headers: {
@@ -32,53 +66,6 @@ export default async function DashboardPage() {
             },
         }
     );
-
-    // Get User's Organisation (assuming single org for simplicity based on schema unique constraint "A user can only be one member per organisation" -- Wait.
-    // Schema: "UNIQUE (org_id, user_id)" -> This means user+org pair is unique. It DOES NOT mean user can only be in one org.
-    // Prompt text: "A user can only be one member per organisation".
-    // Note: Usually users can be in multiple orgs.
-    // But let's assume valid access to *one* org for the dashboard view, or list them?
-    // "The RLS policies must only allow access to an organisation's data if the logged-in user is a member of that organisation."
-    // "Onboarding... Create the entry... assigning the current user...".
-    // For the Dashboard, let's fetch the FIRST organisation they are a member of.
-
-    const { data: memberships, error: memberError } = await supabase
-        .from('org_members')
-        .select('org_id, role, organisations(name, id)')
-        .eq('user_id', userId);
-
-    if (!memberships || memberships.length === 0) {
-        // Fetch fresh user data from Clerk to check metadata
-        // We use clerkClient() here because sessionClaims requires specific dashboard config to include metadata
-        const client = await clerkClient();
-        const user = await client.users.getUser(userId);
-        const metadata = user.publicMetadata as { org_id?: string };
-
-        if (metadata?.org_id) {
-            return (
-                <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="animate-spin w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4"></div>
-                        <h2 className="text-xl font-bold text-slate-900">Setting up your account...</h2>
-                        <p className="text-slate-500">We are adding you to the organisation. This may take a moment.</p>
-                        <p className="text-xs text-slate-400 mt-4">If this persists, the system might be syncing.</p>
-                        <a href="/dashboard" className="mt-4 text-sm text-slate-600 underline cursor-pointer hover:text-slate-900 block">
-                            Check again
-                        </a>
-                    </div>
-                </div>
-            );
-        }
-
-        redirect('/onboarding');
-    }
-
-    const currentOrg = memberships[0].organisations;
-    const role = memberships[0].role;
-    // @ts-ignore
-    const orgName = currentOrg?.name || 'Your Organisation';
-    // @ts-ignore
-    const orgId = currentOrg?.id;
 
     // Fetch Templates
     const { data: templates } = await supabase
@@ -103,9 +90,13 @@ export default async function DashboardPage() {
         <div className="min-h-screen bg-slate-50 flex flex-col">
             {/* Dashboard Header */}
             <header className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900">{orgName}</h1>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">{role} Dashboard</p>
+                <div className="flex items-center gap-4">
+                    <OrganizationSwitcher
+                        hidePersonal={true}
+                        afterCreateOrganizationUrl="/dashboard"
+                        afterLeaveOrganizationUrl="/dashboard"
+                        afterSelectOrganizationUrl="/dashboard"
+                    />
                 </div>
                 <div className="flex items-center gap-4">
                     <a href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">Public Home</a>

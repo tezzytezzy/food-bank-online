@@ -55,24 +55,18 @@ export async function createTemplate(data: TemplateData) {
         }
     );
 
-    // Get User's Org (Admin/Editor role check is implicit in RLS but we need org_id for insert)
-    // We need to find which Org to insert into.
-    // For now, assuming single org or we pick the first one where they are Admin/Editor.
+    const { orgId, orgRole } = await auth();
 
-    const { data: membership, error: memberError } = await sbClient
-        .from('org_members')
-        .select('org_id')
-        .eq('user_id', userId)
-        .in('role', ['Admin', 'Editor'])
-        .single();
-
-    if (memberError || !membership) {
-        throw new Error('You must be an Admin or Editor of an organisation to create templates.');
+    if (!orgId) {
+        throw new Error('No Organization selected.');
     }
+
+    // Optional: Enforce specific Clerk roles if needed
+    // if (orgRole !== 'org:admin') ...
 
     // Data Mapping
     const payload = {
-        org_id: membership.org_id,
+        org_id: orgId,
         name: data.name,
         ticket_type: data.ticket_type,
         distribution_type: data.distribution_type,
