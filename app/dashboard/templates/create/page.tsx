@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createTemplate, TemplateData } from '../actions';
-import { Loader2, Plus, Trash2, Clock, Hash, Users, List } from 'lucide-react';
+import { Loader2, Plus, Trash2, Clock, Hash, Users, List, Truck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,7 @@ export default function CreateTemplatePage() {
     const [name, setName] = useState('');
     const [ticketFormat, setTicketFormat] = useState<'Numeric' | 'TimeAllotted'>('Numeric');
     const [issuanceOrder, setIssuanceOrder] = useState<'Sequential' | 'NonSequential'>('Sequential');
+    const [deliveryMode, setDeliveryMode] = useState<'Digital' | 'Paper' | 'Hybrid'>('Paper');
 
     // Numeric Config
     const [maxNumericTickets, setMaxNumericTickets] = useState<number | ''>('');
@@ -81,6 +82,7 @@ export default function CreateTemplatePage() {
                 name,
                 ticket_format: ticketFormat,
                 issuance_order: issuanceOrder,
+                delivery_mode: deliveryMode,
                 required_user_fields: customFields.filter(f => f.label.trim() !== ''),
             };
 
@@ -148,7 +150,43 @@ export default function CreateTemplatePage() {
                         </div>
                     </div>
 
-                    {/* 2. Ticketing Method */}
+                    {/* 2. Delivery Mode */}
+                    <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                            <Truck className="w-5 h-5 text-slate-500" /> Delivery Mode
+                        </h2>
+
+                        <div className="bg-slate-50 p-4 rounded-md border border-slate-100 mb-4">
+                            <div className="grid grid-cols-3 gap-4">
+                                <button
+                                    type="button"
+                                    disabled
+                                    className="px-4 py-3 text-sm font-medium rounded border border-slate-200 bg-white text-slate-400 cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    <span>📱</span> Digital <span className="text-xs">🔒</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setDeliveryMode('Paper')}
+                                    className="px-4 py-3 text-sm font-medium rounded border border-slate-800 bg-slate-900 text-white flex items-center justify-center gap-2 shadow-sm"
+                                >
+                                    <span>📄</span> Paper
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled
+                                    className="px-4 py-3 text-sm font-medium rounded border border-slate-200 bg-white text-slate-400 cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    <span>📨</span> Hybrid <span className="text-xs">🔒</span>
+                                </button>
+                            </div>
+                            <p className="mt-3 text-xs text-slate-500 text-center">
+                                Currently only Paper distribution is supported.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* 3. Ticketing Method */}
                     <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                         <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
                             <Hash className="w-5 h-5 text-slate-500" /> Ticketing Logic
@@ -219,7 +257,7 @@ export default function CreateTemplatePage() {
                         </div>
                     </div>
 
-                    {/* 3. Session Timing (Global) */}
+                    {/* 4. Session Timing (Global) */}
                     <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                         <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
                             <Clock className="w-5 h-5 text-slate-500" /> Default Session Time
@@ -260,7 +298,7 @@ export default function CreateTemplatePage() {
                         </div>
                     </div>
 
-                    {/* 4. Ticketing Configuration */}
+                    {/* 5. Ticketing Configuration */}
                     <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                         <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
                             {ticketFormat === 'Numeric' ? (
@@ -334,7 +372,7 @@ export default function CreateTemplatePage() {
                         </div>
                     </div>
 
-                    {/* 3. Required User Data */}
+                    {/* 6. Required User Data */}
                     <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
