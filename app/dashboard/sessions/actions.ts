@@ -51,7 +51,7 @@ export async function createSession(data: SessionData) {
     // We also need to get the timing config to calculate end_time.
     const { data: template, error: templateError } = await sbClient
         .from('templates')
-        .select('org_id, start_time, end_time, ticket_type, time_slots_config')
+        .select('org_id, start_time, end_time, ticket_format, time_slots_config')
         .eq('id', data.template_id)
         .single();
 
@@ -79,7 +79,7 @@ export async function createSession(data: SessionData) {
 
         let duration = 0;
 
-        if (template.ticket_type === 'TimeAllotted' && template.time_slots_config) {
+        if (template.ticket_format === 'TimeAllotted' && template.time_slots_config) {
             // CAST config to any because Supabase types might be inferred loosely
             const config = template.time_slots_config as any;
             duration = (Number(config.slot_duration) || 0) * (Number(config.total_slots) || 0);

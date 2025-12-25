@@ -7,8 +7,8 @@ import { revalidatePath } from "next/cache";
 
 export type TemplateData = {
     name: string;
-    ticket_type: 'Numeric' | 'TimeAllotted';
-    distribution_type: 'Sequential' | 'NonSequential';
+    ticket_format: 'Numeric' | 'TimeAllotted';
+    issuance_order: 'Sequential' | 'NonSequential';
     max_numeric_tickets?: number;
     time_slots_config?: {
         start_time: string;
@@ -68,8 +68,8 @@ export async function createTemplate(data: TemplateData) {
     const payload = {
         org_id: orgId,
         name: data.name,
-        ticket_type: data.ticket_type,
-        distribution_type: data.distribution_type,
+        ticket_format: data.ticket_format,
+        issuance_order: data.issuance_order,
         max_numeric_tickets: data.max_numeric_tickets || null,
         // Store Start Time in its own column
         start_time: data.time_slots_config?.start_time || null,

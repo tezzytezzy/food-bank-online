@@ -11,7 +11,7 @@ interface Template {
     name: string;
     start_time: string | null;
     end_time: string | null;
-    ticket_type: 'Numeric' | 'TimeAllotted';
+    ticket_format: 'Numeric' | 'TimeAllotted';
     time_slots_config: any; // Using any for simplicity as structure matches backend usage
 }
 
@@ -49,7 +49,7 @@ export default function CreateSessionForm({ templates }: CreateSessionFormProps)
 
         let duration = 0;
 
-        if (template.ticket_type === 'TimeAllotted' && template.time_slots_config) {
+        if (template.ticket_format === 'TimeAllotted' && template.time_slots_config) {
             const config = template.time_slots_config;
             duration = (Number(config.slot_duration) || 0) * (Number(config.total_slots) || 0);
         } else if (template.start_time && template.end_time) {

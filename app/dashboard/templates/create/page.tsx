@@ -13,8 +13,8 @@ export default function CreateTemplatePage() {
 
     // Form State
     const [name, setName] = useState('');
-    const [ticketType, setTicketType] = useState<'Numeric' | 'TimeAllotted'>('Numeric');
-    const [distributionType, setDistributionType] = useState<'Sequential' | 'NonSequential'>('Sequential');
+    const [ticketFormat, setTicketFormat] = useState<'Numeric' | 'TimeAllotted'>('Numeric');
+    const [issuanceOrder, setIssuanceOrder] = useState<'Sequential' | 'NonSequential'>('Sequential');
 
     // Numeric Config
     const [maxNumericTickets, setMaxNumericTickets] = useState<number | ''>('');
@@ -52,7 +52,7 @@ export default function CreateTemplatePage() {
 
     // Auto-calculate End Time for TimeAllotted
     useEffect(() => {
-        if (ticketType === 'TimeAllotted' && startTime && slotDuration && totalSlots) {
+        if (ticketFormat === 'TimeAllotted' && startTime && slotDuration && totalSlots) {
             const [hours, minutes] = startTime.split(':').map(Number);
             const totalMinutesRaw = (typeof slotDuration === 'number' ? slotDuration : 0) * (typeof totalSlots === 'number' ? totalSlots : 0);
 
@@ -65,11 +65,11 @@ export default function CreateTemplatePage() {
             const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
 
             setEndTime(`${endHours}:${endMinutes}`);
-        } else if (ticketType === 'TimeAllotted') {
+        } else if (ticketFormat === 'TimeAllotted') {
             // Reset or keep empty if inputs invalid
             // check if just one changed
         }
-    }, [ticketType, startTime, slotDuration, totalSlots]);
+    }, [ticketFormat, startTime, slotDuration, totalSlots]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,12 +79,12 @@ export default function CreateTemplatePage() {
         try {
             const payload: TemplateData = {
                 name,
-                ticket_type: ticketType,
-                distribution_type: distributionType,
+                ticket_format: ticketFormat,
+                issuance_order: issuanceOrder,
                 required_user_fields: customFields.filter(f => f.label.trim() !== ''),
             };
 
-            if (ticketType === 'Numeric') {
+            if (ticketFormat === 'Numeric') {
                 if (!maxNumericTickets) throw new Error('Max tickets is required for numeric templates.');
                 payload.max_numeric_tickets = Number(maxNumericTickets);
                 // Also pass start time from state (it's now global)
@@ -156,62 +156,62 @@ export default function CreateTemplatePage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-slate-50 p-4 rounded-md border border-slate-100">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Ticket Type</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Ticket Format</label>
                                 <div className="flex gap-2 bg-white p-1 rounded-md border border-slate-200 inline-flex">
                                     <button
                                         type="button"
-                                        onClick={() => setTicketType('Numeric')}
+                                        onClick={() => setTicketFormat('Numeric')}
                                         className={cn(
                                             "px-4 py-2 text-sm font-medium rounded transition-colors",
-                                            ticketType === 'Numeric' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
+                                            ticketFormat === 'Numeric' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
                                         )}
                                     >
                                         Numeric
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setTicketType('TimeAllotted')}
+                                        onClick={() => setTicketFormat('TimeAllotted')}
                                         className={cn(
                                             "px-4 py-2 text-sm font-medium rounded transition-colors",
-                                            ticketType === 'TimeAllotted' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
+                                            ticketFormat === 'TimeAllotted' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
                                         )}
                                     >
                                         Time-Allotted
                                     </button>
                                 </div>
                                 <p className="mt-2 text-xs text-slate-500">
-                                    {ticketType === 'Numeric'
+                                    {ticketFormat === 'Numeric'
                                         ? "Simple numbered tickets (1, 2, 3...)."
                                         : "Tickets booked for specific time slots."}
                                 </p>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Distribution</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Issuance Order</label>
                                 <div className="flex gap-2 bg-white p-1 rounded-md border border-slate-200 inline-flex">
                                     <button
                                         type="button"
-                                        onClick={() => setDistributionType('Sequential')}
+                                        onClick={() => setIssuanceOrder('Sequential')}
                                         className={cn(
                                             "px-4 py-2 text-sm font-medium rounded transition-colors",
-                                            distributionType === 'Sequential' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
+                                            issuanceOrder === 'Sequential' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
                                         )}
                                     >
                                         Sequential
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setDistributionType('NonSequential')}
+                                        onClick={() => setIssuanceOrder('NonSequential')}
                                         className={cn(
                                             "px-4 py-2 text-sm font-medium rounded transition-colors",
-                                            distributionType === 'NonSequential' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
+                                            issuanceOrder === 'NonSequential' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
                                         )}
                                     >
                                         Non-Sequential
                                     </button>
                                 </div>
                                 <p className="mt-2 text-xs text-slate-500">
-                                    {distributionType === 'Sequential'
+                                    {issuanceOrder === 'Sequential'
                                         ? "Tickets issued in order A1, A2, A3..."
                                         : "Randomised or batched distribution."}
                                 </p>
@@ -247,14 +247,14 @@ export default function CreateTemplatePage() {
                                     required
                                     value={endTime}
                                     onChange={(e) => setEndTime(e.target.value)}
-                                    disabled={ticketType === 'TimeAllotted'}
+                                    disabled={ticketFormat === 'TimeAllotted'}
                                     className={cn(
                                         "w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500",
-                                        ticketType === 'TimeAllotted' && "bg-slate-100 text-slate-500 cursor-not-allowed"
+                                        ticketFormat === 'TimeAllotted' && "bg-slate-100 text-slate-500 cursor-not-allowed"
                                     )}
                                 />
                                 <p className="mt-1 text-xs text-slate-500">
-                                    {ticketType === 'TimeAllotted' ? "Auto-calculated." : "Default end time."}
+                                    {ticketFormat === 'TimeAllotted' ? "Auto-calculated." : "Default end time."}
                                 </p>
                             </div>
                         </div>
@@ -263,7 +263,7 @@ export default function CreateTemplatePage() {
                     {/* 4. Ticketing Configuration */}
                     <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                         <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                            {ticketType === 'Numeric' ? (
+                            {ticketFormat === 'Numeric' ? (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">
                                         Max Tickets

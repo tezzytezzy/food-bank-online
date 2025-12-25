@@ -30,8 +30,8 @@ const CELL_PADDING = 4;
 // QR Configuration
 const QR_SIZE_MM = 30;
 const QR_SIZE = QR_SIZE_MM * MM_TO_PT;
-const TEXT_AREA_WIDTH_MM = 60;
-const TEXT_AREA_WIDTH = TEXT_AREA_WIDTH_MM * MM_TO_PT;
+// const TEXT_AREA_WIDTH_MM = 60;
+// const TEXT_AREA_WIDTH = TEXT_AREA_WIDTH_MM * MM_TO_PT;
 
 // Margins (Centering the grid)
 const GRID_WIDTH_MM = COLS * CELL_WIDTH_MM;
@@ -49,7 +49,7 @@ async function generateTicketsPDF(tickets: Ticket[]): Promise<Uint8Array> {
 
     // --- 1. Load the Font ---
     // Make sure the font file is in the same directory as this script or provide the correct path.
-    const fontBytes = fs.readFileSync('./app/Consolas-Regular.ttf');
+    const fontBytes = fs.readFileSync('./app/fonts/Consolas-Regular.ttf');
 
     // --- 2. Embed the Font ---
     const customFont = await pdfDoc.embedFont(fontBytes);
