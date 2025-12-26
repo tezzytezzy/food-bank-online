@@ -3,8 +3,8 @@ import QRCode from 'qrcode';
 
 // Types (mirroring the DB schema for relevant fields)
 export interface Ticket {
-    ticket_key: string;
-    ticket_id: number;
+    qr_code: string;
+    id: number;
 }
 
 // Constants
@@ -79,7 +79,7 @@ export async function generateTicketsPDF(tickets: Ticket[]): Promise<Uint8Array>
             });
 
             // Generate QR Code
-            const qrDataUrl = await QRCode.toDataURL(ticket.ticket_key, {
+            const qrDataUrl = await QRCode.toDataURL(ticket.qr_code, {
                 errorCorrectionLevel: 'H',
                 version: 1,
                 margin: 0,
@@ -105,8 +105,8 @@ export async function generateTicketsPDF(tickets: Ticket[]): Promise<Uint8Array>
 
             // Draw Text
             // Centered in the 8mm space at bottom
-            page.drawText(ticket.ticket_key, {
-                x: x + CELL_WIDTH / 2 - (ticket.ticket_key.length * 3), // Approximation for centering, or use measureText if needed
+            page.drawText(ticket.qr_code, {
+                x: x + CELL_WIDTH / 2 - (ticket.qr_code.length * 3), // Approximation for centering, or use measureText if needed
                 y: y + (TEXT_AREA_HEIGHT / 2) - 4, // Centered in the bottom 8mm
                 size: 10,
                 color: rgb(0, 0, 0),

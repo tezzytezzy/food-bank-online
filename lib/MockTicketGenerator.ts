@@ -5,8 +5,8 @@ import fs from 'fs';
 
 // Types (mirroring the DB schema for relevant fields)
 export interface Ticket {
-    ticket_key: string;
-    ticket_id: number;
+    qr_code: string;
+    id: number;
 }
 
 // Constants
@@ -95,7 +95,7 @@ async function generateTicketsPDF(tickets: Ticket[]): Promise<Uint8Array> {
             });
 
             // Generate QR Code
-            const qrDataUrl = await QRCode.toDataURL(ticket.ticket_key, {
+            const qrDataUrl = await QRCode.toDataURL(ticket.qr_code, {
                 errorCorrectionLevel: 'H',
                 version: 1,
                 margin: 0,
@@ -116,7 +116,7 @@ async function generateTicketsPDF(tickets: Ticket[]): Promise<Uint8Array> {
             });
 
             // Draw Ticket Key
-            page.drawText(ticket.ticket_key, {
+            page.drawText(ticket.qr_code, {
                 x: x + QR_SIZE + CELL_PADDING * 2, // Approximation for centering, or use measureText if needed
                 y: y + QR_SIZE - CELL_PADDING * 2,
                 size: 24,
@@ -180,8 +180,8 @@ export function generateTickets(count: number = 50): Ticket[] {
 
     for (let i = 1; i <= count; i++) {
         tickets.push({
-            ticket_key: generateUniqueTicketKey(usedKeys),
-            ticket_id: i
+            qr_code: generateUniqueTicketKey(usedKeys),
+            id: i
         });
     }
 

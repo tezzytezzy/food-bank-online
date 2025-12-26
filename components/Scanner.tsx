@@ -19,11 +19,11 @@ export default function Scanner() {
             const found = await OfflineService.getTicket(key.toUpperCase());
             if (found) {
                 setTicket(found);
-                setScannedKey(found.ticket_key);
+                setScannedKey(found.qr_code);
                 // Initialize form data with existing or default
                 const initialData: Record<string, any> = {};
-                if (Array.isArray(found.required_user_fields)) {
-                    found.required_user_fields.forEach((field: any) => {
+                if (Array.isArray(found.user_data)) {
+                    found.user_data.forEach((field: any) => {
                         initialData[field.label] = field.value || "";
                     });
                 }
@@ -75,15 +75,15 @@ export default function Scanner() {
         if (!ticket) return;
 
         try {
-            // Update ticket with new values in required_user_fields
+            // Update ticket with new values in user_data
             // We need to merge formData back into the array structure
-            const updatedFields = (ticket.required_user_fields || []).map((field: any) => ({
+            const updatedFields = (ticket.user_data || []).map((field: any) => ({
                 ...field,
                 value: formData[field.label]
             }));
 
-            await OfflineService.scanTicket(ticket.ticket_key, {
-                required_user_fields: updatedFields
+            await OfflineService.scanTicket(ticket.qr_code, {
+                user_data: updatedFields
             });
             setMode("success");
         } catch (e) {
@@ -183,8 +183,8 @@ export default function Scanner() {
                 {mode === "form" && ticket && (
                     <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl space-y-6">
                         <div className="border-b pb-4">
-                            <h2 className="text-2xl font-bold text-gray-900">{ticket.ticket_key}</h2>
-                            <p className="text-gray-500 text-sm">{ticket.ticket_desc}</p>
+                            <h2 className="text-2xl font-bold text-gray-900">{ticket.qr_code}</h2>
+                            <p className="text-gray-500 text-sm">{ticket.assigned_value}</p>
                             {ticket.status === 'redeemed' && (
                                 <span className="inline-block px-2 py-1 mt-2 text-xs font-bold text-yellow-800 bg-yellow-100 rounded">
                                     ALREADY REDEEMED
@@ -193,7 +193,7 @@ export default function Scanner() {
                         </div>
 
                         <div className="space-y-4">
-                            {ticket.required_user_fields && ticket.required_user_fields.map((field, idx) => (
+                            {ticket.user_data && ticket.user_data.map((field, idx) => (
                                 <div key={idx} className="space-y-1">
                                     <label className="block text-sm font-medium text-gray-700">{field.label}</label>
                                     <input

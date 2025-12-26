@@ -11,9 +11,9 @@ export interface LocalTicket extends Ticket {
     org_id: string; // Matches text type in DB
     session_id: string;
     template_id: string;
-    ticket_desc: string;
+    assigned_value: string;
     status: 'generated' | 'redeemed';
-    required_user_fields: any[]; // JSONB
+    user_data: any[]; // JSONB
 
     // Local flags
     synced?: boolean;
@@ -29,7 +29,7 @@ export const OfflineService = {
             upgrade(db) {
                 // Tickets Store
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    const store = db.createObjectStore(STORE_NAME, { keyPath: 'ticket_key' }); // Query by key is fast
+                    const store = db.createObjectStore(STORE_NAME, { keyPath: 'qr_code' }); // Query by key is fast
                     store.createIndex('session_id', 'session_id');
                     store.createIndex('status', 'status');
                 }
@@ -69,17 +69,17 @@ export const OfflineService = {
         return { count: data.length };
     },
 
-    async getTicket(ticketKey: string): Promise<LocalTicket | undefined> {
+    async getTicket(qrCode: string): Promise<LocalTicket | undefined> {
         const db = await this.initDB();
-        return db.get(STORE_NAME, ticketKey);
+        return db.get(STORE_NAME, qrCode);
     },
 
-    async scanTicket(ticketKey: string, updates: { required_user_fields?: any[] }): Promise<void> {
+    async scanTicket(qrCode: string, updates: { user_data?: any[] }): Promise<void> {
         const db = await this.initDB();
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
 
-        const ticket = await store.get(ticketKey);
+        const ticket = await store.get(qrCode);
         if (!ticket) throw new Error('Ticket not found');
 
         if (ticket.status === 'redeemed') {
@@ -91,7 +91,7 @@ export const OfflineService = {
         const updatedTicket: LocalTicket = {
             ...ticket,
             status: 'redeemed',
-            required_user_fields: updates.required_user_fields || ticket.required_user_fields,
+            user_data: updates.user_data || ticket.user_data,
             synced: false, // Mark dirty
         };
 
@@ -126,14 +126,14 @@ export const OfflineService = {
                 .from('tickets')
                 .update({
                     status: ticket.status,
-                    required_user_fields: ticket.required_user_fields
+                    user_data: ticket.user_data
                 })
-                .eq('ticket_id', ticket.ticket_id); // Match by immutable ID
+                .eq('id', ticket.id); // Match by immutable ID
 
             if (error) {
                 failCount++;
-                errors.push({ ticket: ticket.ticket_key, error: error.message });
-                await logsStore.add({ timestamp: new Date(), ticket: ticket.ticket_key, error: error.message });
+                errors.push({ ticket: ticket.qr_code, error: error.message });
+                await logsStore.add({ timestamp: new Date(), ticket: ticket.qr_code, error: error.message });
             } else {
                 successCount++;
                 // Update local to synced
