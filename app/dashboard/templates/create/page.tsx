@@ -88,7 +88,7 @@ export default function CreateTemplatePage() {
 
             if (ticketFormat === 'Numeric') {
                 if (!maxNumericTickets) throw new Error('Max tickets is required for numeric templates.');
-                payload.max_numeric_tickets = Number(maxNumericTickets);
+                payload.capacity = Number(maxNumericTickets);
                 // Also pass start time from state (it's now global)
                 if (!endTime) throw new Error('End time is required.');
 
@@ -110,6 +110,9 @@ export default function CreateTemplatePage() {
                     total_slots: Number(totalSlots),
                     capacity_per_slot: Number(capacityPerSlot)
                 };
+
+                // Set capacity to total capacity for Time-Allotted
+                payload.capacity = Number(totalTicketsAvailable);
             }
 
             await createTemplate(payload);

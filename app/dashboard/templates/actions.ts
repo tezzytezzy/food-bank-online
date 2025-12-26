@@ -10,7 +10,7 @@ export type TemplateData = {
     ticket_format: 'Numeric' | 'TimeAllotted';
     issuance_order: 'Sequential' | 'NonSequential';
     delivery_mode: 'Digital' | 'Paper' | 'Hybrid';
-    max_numeric_tickets?: number;
+    capacity?: number;
     time_slots_config?: {
         start_time: string;
         end_time: string;
@@ -72,7 +72,7 @@ export async function createTemplate(data: TemplateData) {
         ticket_format: data.ticket_format,
         issuance_order: data.issuance_order,
         delivery_mode: data.delivery_mode,
-        max_numeric_tickets: data.max_numeric_tickets || null,
+        capacity: data.capacity || null,
         // Store Start Time in its own column
         start_time: data.time_slots_config?.start_time || null,
         end_time: data.time_slots_config?.end_time || null,
