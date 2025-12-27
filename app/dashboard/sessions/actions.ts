@@ -51,7 +51,7 @@ export async function createSession(data: SessionData) {
     // We also need to get the timing config to calculate end_time.
     const { data: template, error: templateError } = await sbClient
         .from('templates')
-        .select('org_id, start_time, end_time, ticket_format, time_slots_config')
+        .select('org_id, start_time, end_time, ticket_format, time_slots_config, capacity, required_user_fields')
         .eq('id', data.template_id)
         .single();
 
@@ -59,24 +59,23 @@ export async function createSession(data: SessionData) {
         throw new Error('Template not found or access denied.');
     }
 
+    // Helper functions for time calculation
+    const toMinutes = (time: string) => {
+        const [h, m] = time.split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    const toTimeStr = (minutes: number) => {
+        const h = Math.floor(minutes / 60) % 24;
+        const m = minutes % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
     // 2. Calculate End Time
     // We calculate duration from the template and apply it to the session's start_time
     let sessionEndTime = null;
 
     if (data.start_time) {
-        // Helper to convert HH:MM to minutes
-        const toMinutes = (time: string) => {
-            const [h, m] = time.split(':').map(Number);
-            return h * 60 + m;
-        };
-
-        // Helper to convert minutes back to HH:MM
-        const toTimeStr = (minutes: number) => {
-            const h = Math.floor(minutes / 60) % 24;
-            const m = minutes % 60;
-            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        };
-
         let duration = 0;
 
         if (template.ticket_format === 'TimeAllotted' && template.time_slots_config) {
@@ -90,6 +89,7 @@ export async function createSession(data: SessionData) {
 
         // Apply duration to session start time
         if (duration > 0) {
+            // If we have a duration, add it to the start time
             const startMinutes = toMinutes(data.start_time);
             sessionEndTime = toTimeStr(startMinutes + duration);
         } else if (template.end_time) {
@@ -98,7 +98,7 @@ export async function createSession(data: SessionData) {
         }
     }
 
-    // 2. Insert Session
+    // 3. Insert Session
     const payload = {
         org_id: template.org_id,
         template_id: data.template_id,
@@ -108,17 +108,128 @@ export async function createSession(data: SessionData) {
         status: data.status,
     };
 
-    const { error: insertError } = await sbClient
+    const { data: session, error: insertError } = await sbClient
         .from('sessions')
-        .insert(payload);
+        .insert(payload)
+        .select('id')
+        .single();
 
-    if (insertError) {
+    if (insertError || !session) {
         console.error('Session Creation Error:', insertError);
-        throw new Error('Failed to create session: ' + insertError.message);
+        throw new Error('Failed to create session: ' + (insertError?.message || 'Unknown error'));
+    }
+
+    // 4. Generate Tickets
+    try {
+        const tickets = [];
+        const usedKeys = new Set<string>();
+        const capacity = template.capacity || 0;
+
+        // Prepare initial user data
+        const initialUserData = initialiseUserDataFromTemplate(template.required_user_fields as any[]);
+
+        if (template.ticket_format === 'Numeric') {
+            for (let i = 1; i <= capacity; i++) {
+                tickets.push({
+                    org_id: template.org_id,
+                    session_id: session.id,
+                    template_id: data.template_id,
+                    qr_code: generateUniqueTicketKey(usedKeys),
+                    assigned_value: String(i),
+                    user_data: initialUserData,
+                    status: 'generated'
+                });
+            }
+        } else if (template.ticket_format === 'TimeAllotted' && template.time_slots_config && data.start_time) {
+            const config = template.time_slots_config as any;
+            const slotDuration = Number(config.slot_duration) || 0;
+            const totalSlots = Number(config.total_slots) || 0;
+            const capacityPerSlot = Number(config.capacity_per_slot) || 0;
+            const sessionStartMinutes = toMinutes(data.start_time);
+
+            for (let slotIdx = 0; slotIdx < totalSlots; slotIdx++) {
+                // Calculate time for this slot
+                const slotTimeMinutes = sessionStartMinutes + (slotIdx * slotDuration);
+                const slotTimeStr = toTimeStr(slotTimeMinutes);
+
+                // Create tickets for this slot
+                for (let i = 0; i < capacityPerSlot; i++) {
+                    tickets.push({
+                        org_id: template.org_id,
+                        session_id: session.id,
+                        template_id: data.template_id,
+                        qr_code: generateUniqueTicketKey(usedKeys),
+                        assigned_value: slotTimeStr, // e.g., "09:00", "09:30"
+                        user_data: initialUserData,
+                        status: 'generated'
+                    });
+                }
+            }
+        }
+
+        // 5. Bulk Insert Tickets
+        if (tickets.length > 0) {
+            const { error: ticketError } = await sbClient
+                .from('tickets')
+                .insert(tickets);
+
+            if (ticketError) {
+                // Determine if we should delete the session? 
+                // For now, just throw, transaction rollback not guaranteed unless RPC.
+                console.error('Error generating tickets:', ticketError);
+                // Ideally clean up session here, but let's just surface error for now.
+                throw new Error('Created session but failed to generate tickets: ' + ticketError.message);
+            }
+        }
+
+    } catch (e: any) {
+        console.error('Ticket Generation Logic Error:', e);
+        throw new Error('Ticket generation failed: ' + e.message);
     }
 
     revalidatePath('/dashboard');
     redirect('/dashboard');
+}
+
+// --- Helper Functions ---
+
+function generateUniqueTicketKey(existing: Set<string>): string {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let key = "";
+    do {
+        key = "";
+        for (let i = 0; i < 6; i++) {
+            key += chars[Math.floor(Math.random() * chars.length)];
+        }
+    } while (existing.has(key));
+    existing.add(key);
+    return key;
+}
+
+function initialiseUserDataFromTemplate(templateFields: any[]): Record<string, any> {
+    const userDataObject: Record<string, any> = {};
+    if (!Array.isArray(templateFields)) return userDataObject;
+
+    for (const field of templateFields) {
+        if (!field.label) continue;
+
+        // 1. Lowercase
+        let key = field.label.toLowerCase();
+
+        // 2. Remove non-alphanumeric/non-space (except hyphen)
+        key = key.replace(/[^a-z0-9\s-]/g, '');
+
+        // 3. Replace spaces/hyphens with underscore
+        key = key.replace(/[\s-]+/g, '_');
+
+        // 4. Trim underscores
+        key = key.replace(/^_+|_+$/g, '');
+
+        if (key) {
+            userDataObject[key] = null;
+        }
+    }
+    return userDataObject;
 }
 
 export async function getTemplates() {
