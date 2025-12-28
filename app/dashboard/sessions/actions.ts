@@ -306,3 +306,61 @@ export async function cancelSession(sessionId: string) {
 
     revalidatePath('/dashboard');
 }
+
+export async function generateSessionTicketsPdf(sessionId: string): Promise<string> {
+    const { userId, getToken } = await auth();
+    if (!userId) throw new Error('Unauthorized');
+
+    const token = await getToken({ template: 'supabase' });
+    if (!token) throw new Error('No Supabase token found');
+
+    const { createServerClient } = await import("@supabase/ssr");
+    const sbClient = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() { return [] },
+                setAll() { }
+            },
+            global: {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        }
+    );
+
+    // Fetch Session & Template Name
+    const { data: session, error: sessionError } = await sbClient
+        .from('sessions')
+        .select(`
+            *,
+            templates (name)
+        `)
+        .eq('id', sessionId)
+        .single();
+
+    if (sessionError || !session) {
+        throw new Error('Session not found');
+    }
+
+    // Fetch Tickets
+    const { data: tickets, error: ticketsError } = await sbClient
+        .from('tickets')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('id', { ascending: true }); // Ensure consistent order
+
+    if (ticketsError || !tickets || tickets.length === 0) {
+        throw new Error('No tickets found for this session');
+    }
+
+    // Generate PDF
+    const { generateTicketsPDF } = await import("@/lib/PdfGenerator");
+    const templateName = (session.templates as any)?.name || 'Session';
+    const pdfBytes = await generateTicketsPDF(tickets, session.session_date, templateName);
+
+    // Convert to Base64
+    return Buffer.from(pdfBytes).toString('base64');
+}

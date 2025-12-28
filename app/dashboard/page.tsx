@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { Plus, Calendar, FileText } from "lucide-react";
 import { CancelSessionButton } from "./sessions";
+import { SessionActions } from "./_components/session-actions";
 
 export default async function DashboardPage() {
     const { userId, getToken } = await auth();
@@ -145,6 +146,12 @@ export default async function DashboardPage() {
                                             </p>
                                         </div>
                                     </div>
+
+                                    <SessionActions
+                                        sessionId={session.id}
+                                        sessionDate={session.session_date}
+                                        templateName={(session.templates as any)?.name || 'Untitled'}
+                                    />
                                 </div>
                             ))}
                         </div>

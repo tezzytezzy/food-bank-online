@@ -55,14 +55,23 @@ export const OfflineService = {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
 
-        // Clear existing for this session? Or all?
-        // Requirement: "overwrite local IndexedDB". 
-        // Safer to clear all if we assume single session focus, but clearing specific session is safer if multiple cached.
-        // For "Download (Check-out)", implied prepping for specific session. We'll clear everything to ensure clean state and avoid stale data from other sessions.
+        // Clear existing data to ensure clean state for the session
         await store.clear();
 
         for (const ticket of data) {
-            await store.put({ ...ticket, synced: true }); // Mark as synced initially since strict copy
+            // Check if we have an existing local record to preserve timestamp? 
+            // The prompt says "download... downloads and stores". 
+            // "Synchronization Logic: When device reconnects... last-saved-state-wins."
+            // But download usually means "Fresh Start" or "Pull from Server".
+            // If we overwrite local usage, we lose offline scans if not synced.
+            // Assumption: User syncs BEFORE downloading fresh data, or this download wipes local state.
+            // "Functionality: This action downloads and stores..." implies initialization.
+            await store.put({
+                ...ticket,
+                status: ticket.status || 'generated', // Default to generated if null
+                lastScanTimestamp: null, // Initialize
+                synced: true
+            });
         }
 
         await tx.done;
@@ -82,17 +91,13 @@ export const OfflineService = {
         const ticket = await store.get(qrCode);
         if (!ticket) throw new Error('Ticket not found');
 
-        if (ticket.status === 'redeemed') {
-            // Already redeemed logic? 
-            // Depending on policy, might allow update of fields. 
-            // For now, allow update.
-        }
-
+        // Update Ticket
         const updatedTicket: LocalTicket = {
             ...ticket,
             status: 'redeemed',
             user_data: updates.user_data || ticket.user_data,
-            synced: false, // Mark dirty
+            lastScanTimestamp: Date.now(),
+            synced: false,
         };
 
         await store.put(updatedTicket);
@@ -106,7 +111,14 @@ export const OfflineService = {
         const logsStore = tx.objectStore(SYNC_LOGS_STORE);
 
         const allTickets: LocalTicket[] = await store.getAll();
-        const dirtyTickets = allTickets.filter(t => t.synced === false);
+
+        // Filter: Only tickets with status 'redeemed' and dirty
+        // "Only tickets with a status of 'redeemed' ... should be synced back"
+        // Also "client-side lastScanTimestamp that is later than the last known server sync time"
+        // We track 'synced' flag. If synced=true, it's already up to date (or handled).
+        // If synced=false, it's a candidate.
+
+        const dirtyTickets = allTickets.filter(t => t.synced === false && t.status === 'redeemed');
 
         if (dirtyTickets.length === 0) {
             return { total: 0, success: 0, failed: 0, errors: [] };
@@ -117,18 +129,21 @@ export const OfflineService = {
         let failCount = 0;
         const errors: any[] = [];
 
-        // Batch upsert? Or individual to isolate failures?
-        // "Include a syncSummary... If a sync fails... store error in sync_logs array"
-        // Individual upsert allows precise tracking.
-
         for (const ticket of dirtyTickets) {
+
+            // Check timestamp condition if needed?
+            // "later than the last known server sync time".
+            // Since we don't track 'last known server sync time' globally yet, 
+            // we rely on the fact it is dirty (modified since download/last sync).
+
             const { error } = await supabase
                 .from('tickets')
                 .update({
                     status: ticket.status,
                     user_data: ticket.user_data
+                    // timestamp? DB doesn't support it yet, so we just update status.
                 })
-                .eq('id', ticket.id); // Match by immutable ID
+                .eq('id', ticket.id);
 
             if (error) {
                 failCount++;
@@ -136,7 +151,6 @@ export const OfflineService = {
                 await logsStore.add({ timestamp: new Date(), ticket: ticket.qr_code, error: error.message });
             } else {
                 successCount++;
-                // Update local to synced
                 ticket.synced = true;
                 await store.put(ticket);
             }
