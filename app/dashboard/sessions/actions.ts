@@ -135,7 +135,8 @@ export async function createSession(data: SessionData) {
                     session_id: session.id,
                     template_id: data.template_id,
                     qr_code: generateUniqueTicketKey(usedKeys),
-                    assigned_value: String(i),
+                    ticket_number_str: String(i),
+                    assigned_start_time: null,
                     user_data: initialUserData,
                     status: 'generated'
                 });
@@ -147,10 +148,27 @@ export async function createSession(data: SessionData) {
             const capacityPerSlot = Number(config.capacity_per_slot) || 0;
             const sessionStartMinutes = toMinutes(data.start_time);
 
+            // Construct Base Date object from session_date and start_time
+            // We need a stable base time. 
+            // data.session_date is YYYY-MM-DD
+            // data.start_time is HH:MM
+            // Assume UTC or Local? The app seems to use UTC strings for storage but display local.
+            // Let's coerce to ISO string for DB `timestamptz`.
+            // Ideally we create a Date object in UTC from the inputs.
+            const baseDateInfo = new Date(`${data.session_date}T${data.start_time}:00Z`); // Treat as UTC for storage consistency?
+            // Actually, if session_date is "2025-12-08" and time is "09:00", we want 9am on that day.
+            // If we use Z, it is 9am UTC. 
+            // If the user meant 9am Local, and we store 9am UTC, it might be off.
+            // But since we control the full stack, let's stick to UTC for `timestamptz`.
+            // Or better, just parse it simply:
+            const [y, M, d] = data.session_date.split('-').map(Number);
+            const [h, m] = data.start_time.split(':').map(Number);
+            const baseDate = new Date(Date.UTC(y, M - 1, d, h, m));
+
             for (let slotIdx = 0; slotIdx < totalSlots; slotIdx++) {
-                // Calculate time for this slot
-                const slotTimeMinutes = sessionStartMinutes + (slotIdx * slotDuration);
-                const slotTimeStr = toTimeStr(slotTimeMinutes);
+                // Calculate time for this slot by adding Minutes
+                const slotTime = new Date(baseDate.getTime() + slotIdx * slotDuration * 60000);
+                const slotISO = slotTime.toISOString();
 
                 // Create tickets for this slot
                 for (let i = 0; i < capacityPerSlot; i++) {
@@ -159,7 +177,8 @@ export async function createSession(data: SessionData) {
                         session_id: session.id,
                         template_id: data.template_id,
                         qr_code: generateUniqueTicketKey(usedKeys),
-                        assigned_value: slotTimeStr, // e.g., "09:00", "09:30"
+                        ticket_number_str: null,
+                        assigned_start_time: slotISO,
                         user_data: initialUserData,
                         status: 'generated'
                     });

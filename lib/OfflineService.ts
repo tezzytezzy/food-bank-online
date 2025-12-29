@@ -11,7 +11,8 @@ export interface LocalTicket extends Ticket {
     org_id: string; // Matches text type in DB
     session_id: string;
     template_id: string;
-    assigned_value: string;
+    ticket_number_str?: string;
+    assigned_start_time?: string;
     status: 'generated' | 'redeemed';
     user_data: any[]; // JSONB
 

@@ -7,7 +7,8 @@ import fontkit from '@pdf-lib/fontkit';
 export interface Ticket {
     qr_code: string;
     id: number;
-    assigned_value: string
+    ticket_number_str?: string;
+    assigned_start_time?: string;
 }
 
 // Constants
@@ -59,7 +60,7 @@ export async function generateTicketsPDF(tickets: Ticket[], sessionDate: string,
     // Format Date: YYYY-MMM-DD (e.g., 2025-Dec-08)
     const dateObj = new Date(sessionDate);
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const formattedDate = `${dateObj.getUTCFullYear()}-${months[dateObj.getUTCMonth()]}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
+    const formattedSessionDate = `${dateObj.getUTCFullYear()}-${months[dateObj.getUTCMonth()]}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
 
     // Process tickets in chunks for pages
     for (let i = 0; i < tickets.length; i += TICKETS_PER_PAGE) {
@@ -116,10 +117,36 @@ export async function generateTicketsPDF(tickets: Ticket[], sessionDate: string,
                 color: rgb(0, 0, 0),
             });
 
-            // Draw Ticket Date and Time (Sequential No. or Time Alloted)
-            // Combined format: "[Assigned Value] [YYYY-MMM-DD]"
-            // Example: "1 2025-Jul-08" or "09:00 AM 2025-Jul-08"
-            const ticketDisplayText = `${ticket.assigned_value} ${formattedDate}`;
+            // Draw Ticket Date and Time
+            let ticketDisplayText = "";
+
+            if (ticket.assigned_start_time) {
+                // TimeAllotted: Format from timestamp e.g. "09:00 AM 2025-Dec-08"
+                const tDate = new Date(ticket.assigned_start_time);
+                // Adjust for UTC if stored as TZ, or assuming DB stores absolute time.
+                // "2025-12-08T09:00:00Z".
+                // We want to print it as local or keep as UTC? 
+                // Assuming the prompt implies "Accurate Date", usually means the visual date.
+                // Let's use UTC getter to be safe if that's how we store consistently,
+                // OR better, we format it nicely.
+
+                const tYear = tDate.getUTCFullYear();
+                const tMonth = months[tDate.getUTCMonth()];
+                const tDay = String(tDate.getUTCDate()).padStart(2, '0');
+
+                const tHours = String(tDate.getUTCHours()).padStart(2, '0');
+                const tMinutes = String(tDate.getUTCMinutes()).padStart(2, '0');
+
+                const timeStr = `${tHours}:${tMinutes}`;
+                const dateStr = `${tYear}-${tMonth}-${tDay}`;
+
+                ticketDisplayText = `${timeStr} ${dateStr}`;
+
+            } else {
+                // Numeric: "1 2025-Dec-08" (uses session date)
+                const val = ticket.ticket_number_str || "";
+                ticketDisplayText = `${val} ${formattedSessionDate}`;
+            }
 
             page.drawText(ticketDisplayText, {
                 x: x + QR_SIZE + CELL_PADDING * 2,

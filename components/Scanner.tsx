@@ -184,7 +184,17 @@ export default function Scanner() {
                     <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl space-y-6">
                         <div className="border-b pb-4">
                             <h2 className="text-2xl font-bold text-gray-900">{ticket.qr_code}</h2>
-                            <p className="text-gray-500 text-sm">{ticket.assigned_value}</p>
+                            <p className="text-gray-500 text-sm">
+                                {ticket.ticket_number_str
+                                    ? `Ticket #${ticket.ticket_number_str}`
+                                    : ticket.assigned_start_time
+                                        ? new Date(ticket.assigned_start_time).toLocaleString(undefined, {
+                                            dateStyle: 'medium',
+                                            timeStyle: 'short',
+                                            timeZone: 'UTC'
+                                        })
+                                        : 'Unknown Ticket Type'}
+                            </p>
                             {ticket.status === 'redeemed' && (
                                 <span className="inline-block px-2 py-1 mt-2 text-xs font-bold text-yellow-800 bg-yellow-100 rounded">
                                     ALREADY REDEEMED
