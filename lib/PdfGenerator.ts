@@ -9,6 +9,7 @@ export interface Ticket {
     id: number;
     ticket_number_str?: string;
     assigned_start_time?: string;
+    user_data?: Record<string, any> | null;
 }
 
 // Constants
@@ -27,12 +28,12 @@ const CELL_WIDTH_MM = 94;
 const CELL_HEIGHT_MM = 34;
 const CELL_WIDTH = CELL_WIDTH_MM * MM_TO_PT;
 const CELL_HEIGHT = CELL_HEIGHT_MM * MM_TO_PT;
-const CELL_PADDING = 4;
+const CELL_PADDING = 5;
 
 // QR Configuration
 const QR_SIZE_MM = 30;
 const QR_SIZE = QR_SIZE_MM * MM_TO_PT;
-// const TEXT_AREA_WIDTH_MM = 60;
+// const TEXT_AREA_WIDTH_MM = 52;
 // const TEXT_AREA_WIDTH = TEXT_AREA_WIDTH_MM * MM_TO_PT;
 
 // Margins (Centering the grid)
@@ -42,6 +43,18 @@ const MARGIN_X_MM = (PAGE_WIDTH_MM - GRID_WIDTH_MM) / 2;
 const MARGIN_Y_MM = (PAGE_HEIGHT_MM - GRID_HEIGHT_MM) / 2;
 const MARGIN_X = MARGIN_X_MM * MM_TO_PT;
 const MARGIN_Y = MARGIN_Y_MM * MM_TO_PT;
+
+function formatUserData(userData: Record<string, any> | null | undefined): string {
+    if (!userData) return "";
+
+    // Exactly 7 characters by padding and truncating
+    const numPaddingTruncating = 7;
+    return Object.entries(userData).map(([key, value]) => {
+        const initials = key.split('_').map(w => w.charAt(0).toUpperCase()).join('') + ':';
+        const val = (value === null || value === undefined || value === "") ? "" : String(value);
+        return `${initials} ${val}`.padEnd(numPaddingTruncating, ' ').substring(0, numPaddingTruncating);
+    }).join("");
+}
 
 export async function generateTicketsPDF(tickets: Ticket[], sessionDate: string, templateName: string): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
@@ -156,20 +169,8 @@ export async function generateTicketsPDF(tickets: Ticket[], sessionDate: string,
                 color: rgb(0, 0, 0),
             });
 
-            // Draw Template Name instead of hardcoded placeholder if desired, 
-            // OR keep the "FS: DR:" placeholder if that was specific requirement.
-            // Prompt says: "Data Requirement: ... include session.session_date and templates.name fields in the ticket generation process."
-            // But details say: 
-            // "Assigned Value Modification: [Date] appended to existing tickets.assigned_value".
-            // It uses `templates.name` for the Filename.
-            // It doesn't explicitly say to DRAW the template name on the ticket visual, but typically one might.
-            // However, the prompt specifically listed changes to 'assigned_values'.
-            // I will leave the third line as it was (User Data placeholder) or maybe put template name?
-            // The previous code had `const ticketRequiredUserFields = "FS:     DR:     ";`
-            // Let's leave that as is unless instructed, as the prompt focused on Date and Assigned Value on text.
-
-            const ticketRequiredUserFields = "FS:     DR:     ";
-            page.drawText(ticketRequiredUserFields, {
+            const ticketUserData = formatUserData(ticket.user_data);
+            page.drawText(ticketUserData, {
                 x: x + QR_SIZE + CELL_PADDING * 2,
                 y: y + QR_SIZE - CELL_PADDING * 14,
                 size: 14,
