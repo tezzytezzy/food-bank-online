@@ -14,7 +14,7 @@ export interface LocalTicket extends Ticket {
     ticket_number_str?: string;
     assigned_start_time?: string;
     status: 'generated' | 'redeemed';
-    user_data: any[]; // JSONB
+    user_data: Record<string, any>; // JSONB
 
     // Local flags
     synced?: boolean;
@@ -42,8 +42,8 @@ export const OfflineService = {
         });
     },
 
-    async downloadSessionData(sessionId: string): Promise<{ count: number }> {
-        const supabase = createClient();
+    async downloadSessionData(sessionId: string, token: string): Promise<{ count: number }> {
+        const supabase = createClient(token);
         const { data, error } = await supabase
             .from('tickets')
             .select('*')
@@ -84,7 +84,7 @@ export const OfflineService = {
         return db.get(STORE_NAME, qrCode);
     },
 
-    async scanTicket(qrCode: string, updates: { user_data?: any[] }): Promise<void> {
+    async scanTicket(qrCode: string, updates: { user_data?: Record<string, any> }): Promise<void> {
         const db = await this.initDB();
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
@@ -105,59 +105,67 @@ export const OfflineService = {
         await tx.done;
     },
 
-    async syncSessionData(): Promise<{ total: number; success: number; failed: number; errors: any[] }> {
+    async syncSessionData(token: string): Promise<{ total: number; success: number; failed: number; errors: any[] }> {
         const db = await this.initDB();
-        const tx = db.transaction([STORE_NAME, SYNC_LOGS_STORE], 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const logsStore = tx.objectStore(SYNC_LOGS_STORE);
 
-        const allTickets: LocalTicket[] = await store.getAll();
-
-        // Filter: Only tickets with status 'redeemed' and dirty
-        // "Only tickets with a status of 'redeemed' ... should be synced back"
-        // Also "client-side lastScanTimestamp that is later than the last known server sync time"
-        // We track 'synced' flag. If synced=true, it's already up to date (or handled).
-        // If synced=false, it's a candidate.
-
+        // 1. Get dirty tickets - use readonly fetch
+        const allTickets: LocalTicket[] = await db.getAll(STORE_NAME);
         const dirtyTickets = allTickets.filter(t => t.synced === false && t.status === 'redeemed');
 
         if (dirtyTickets.length === 0) {
             return { total: 0, success: 0, failed: 0, errors: [] };
         }
 
-        const supabase = createClient();
+        const supabase = createClient(token);
         let successCount = 0;
         let failCount = 0;
         const errors: any[] = [];
 
+        const successfulQrCodes: string[] = [];
+        const syncLogs: any[] = [];
+
+        // 2. Perform Network Operations (outside transaction)
         for (const ticket of dirtyTickets) {
-
-            // Check timestamp condition if needed?
-            // "later than the last known server sync time".
-            // Since we don't track 'last known server sync time' globally yet, 
-            // we rely on the fact it is dirty (modified since download/last sync).
-
             const { error } = await supabase
                 .from('tickets')
                 .update({
                     status: ticket.status,
                     user_data: ticket.user_data
-                    // timestamp? DB doesn't support it yet, so we just update status.
                 })
                 .eq('id', ticket.id);
 
             if (error) {
                 failCount++;
                 errors.push({ ticket: ticket.qr_code, error: error.message });
-                await logsStore.add({ timestamp: new Date(), ticket: ticket.qr_code, error: error.message });
+                syncLogs.push({ timestamp: new Date(), ticket: ticket.qr_code, error: error.message });
             } else {
                 successCount++;
-                ticket.synced = true;
-                await store.put(ticket);
+                successfulQrCodes.push(ticket.qr_code);
             }
         }
 
-        await tx.done;
+        // 3. Update Local DB (new transaction)
+        if (successfulQrCodes.length > 0 || syncLogs.length > 0) {
+            const tx = db.transaction([STORE_NAME, SYNC_LOGS_STORE], 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const logsStore = tx.objectStore(SYNC_LOGS_STORE);
+
+            // Mark successful tickets as synced
+            for (const qr of successfulQrCodes) {
+                const t = await store.get(qr);
+                if (t) {
+                    t.synced = true;
+                    await store.put(t);
+                }
+            }
+
+            // Write logs
+            for (const log of syncLogs) {
+                await logsStore.add(log);
+            }
+
+            await tx.done;
+        }
 
         return { total: dirtyTickets.length, success: successCount, failed: failCount, errors };
     }

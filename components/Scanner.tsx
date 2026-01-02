@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { OfflineService, LocalTicket } from "@/lib/OfflineService";
-import { Protect } from "@clerk/nextjs";
+import { Protect, useAuth } from "@clerk/nextjs";
 import { CheckCircle, Calculator, Keyboard } from "lucide-react"; // Icons
 
 export default function Scanner() {
+    const { getToken } = useAuth();
     const [mode, setMode] = useState<"menu" | "scan" | "manual" | "form" | "success">("menu");
     const [scannedKey, setScannedKey] = useState<string>("");
     const [ticket, setTicket] = useState<LocalTicket | null>(null);
     const [formData, setFormData] = useState<Record<string, any>>({});
-    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const [isScanning, setIsScanning] = useState(false);
+    const scannerRef = useRef<Html5Qrcode | null>(null);
 
     // Lookup ticket in IDB
     const handleLookup = async (key: string) => {
@@ -22,9 +24,9 @@ export default function Scanner() {
                 setScannedKey(found.qr_code);
                 // Initialize form data with existing or default
                 const initialData: Record<string, any> = {};
-                if (Array.isArray(found.user_data)) {
-                    found.user_data.forEach((field: any) => {
-                        initialData[field.label] = field.value || "";
+                if (found.user_data && typeof found.user_data === 'object' && !Array.isArray(found.user_data)) {
+                    Object.entries(found.user_data).forEach(([key, value]) => {
+                        initialData[key] = value || "";
                     });
                 }
                 setFormData(initialData);
@@ -39,36 +41,61 @@ export default function Scanner() {
     };
 
     // Scanner Logic
-    useEffect(() => {
-        if (mode === "scan") {
-            // Small timeout to ensure DOM is ready
-            const timeout = setTimeout(() => {
-                const scanner = new Html5QrcodeScanner(
-                    "reader",
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
-            /* verbose= */ false
-                );
-                scannerRef.current = scanner;
+    // Scanner Logic
+    const startScanning = async () => {
+        if (scannerRef.current) return; // Prevent double start
 
-                scanner.render(
-                    (decodedText) => {
-                        scanner.clear();
-                        handleLookup(decodedText);
-                    },
-                    (error) => {
-                        // console.warn(error);
-                    }
-                );
-            }, 100);
+        try {
+            const scanner = new Html5Qrcode("reader");
+            scannerRef.current = scanner;
 
-            return () => {
-                clearTimeout(timeout);
-                if (scannerRef.current) {
-                    scannerRef.current.clear().catch(console.error);
+            // Set state BEFORE starting to remove button ensuring UI updates first
+            setIsScanning(true);
+
+            await scanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    handleLookup(decodedText);
+                    // Do not stop immediately, let lookup handle flow
+                    stopScanning();
+                },
+                (errorMessage) => {
+                    // console.warn(errorMessage);
                 }
-            };
+            );
+        } catch (err) {
+            console.error("Error starting scanner:", err);
+            // If start fails, reset state
+            setIsScanning(false);
+            scannerRef.current = null;
+            alert("Failed to start camera. Please ensure camera permissions are granted.");
         }
-    }, [mode]);
+    };
+
+    const stopScanning = async () => {
+        if (scannerRef.current) {
+            try {
+                await scannerRef.current.stop();
+                scannerRef.current.clear();
+            } catch (e) {
+                console.warn("Failed to stop scanner", e);
+            }
+            scannerRef.current = null;
+        }
+        setIsScanning(false);
+    };
+
+    // Cleanup on unmount or mode change
+    useEffect(() => {
+        return () => {
+            if (scannerRef.current) {
+                // Ignore errors on unmount cleanup
+                scannerRef.current.stop().catch(() => { });
+                try { scannerRef.current.clear(); } catch (e) { }
+            }
+        };
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -76,15 +103,14 @@ export default function Scanner() {
 
         try {
             // Update ticket with new values in user_data
-            // We need to merge formData back into the array structure
-            const updatedFields = (ticket.user_data || []).map((field: any) => ({
-                ...field,
-                value: formData[field.label]
-            }));
+            // Update ticket with new values in user_data
+            const updatedUserData = { ...ticket.user_data, ...formData };
 
             await OfflineService.scanTicket(ticket.qr_code, {
-                user_data: updatedFields
+                user_data: updatedUserData
             });
+
+
             setMode("success");
         } catch (e) {
             console.error(e);
@@ -135,9 +161,12 @@ export default function Scanner() {
                             <button onClick={async () => {
                                 // Sync Trigger
                                 try {
-                                    const summary = await OfflineService.syncSessionData();
+                                    const token = await getToken({ template: 'supabase' });
+                                    if (!token) throw new Error('No authentication token found');
+                                    const summary = await OfflineService.syncSessionData(token);
                                     alert(`Sync Complete:\nSynced: ${summary.success}\nFailed: ${summary.failed}`);
                                 } catch (e) {
+                                    console.error(e);
                                     alert("Sync Error");
                                 }
                             }} className="text-sm text-gray-500 underline">
@@ -149,9 +178,25 @@ export default function Scanner() {
 
                 {/* SCAN MODE */}
                 {mode === "scan" && (
-                    <div className="w-full max-w-sm">
-                        <div id="reader" className="w-full bg-black rounded-lg overflow-hidden"></div>
-                        <button onClick={() => setMode("menu")} className="mt-4 px-4 py-2 text-gray-600 bg-white rounded shadow w-full">
+                    <div className="w-full max-w-sm relative">
+                        {/* Container for scanner - React leaves children alone if empty? No, better to be sibling */}
+                        <div id="reader" className="w-full bg-black rounded-lg overflow-hidden min-h-[300px]"></div>
+
+                        {!isScanning && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white rounded-lg z-10">
+                                <button
+                                    onClick={startScanning}
+                                    className="px-6 py-3 bg-blue-600 rounded-lg font-semibold shadow-lg hover:bg-blue-700"
+                                >
+                                    Tap to Start Camera
+                                </button>
+                            </div>
+                        )}
+
+                        <button onClick={() => {
+                            stopScanning();
+                            setMode("menu");
+                        }} className="mt-4 px-4 py-2 text-gray-600 bg-white rounded shadow w-full relative z-20">
                             Cancel
                         </button>
                     </div>
@@ -203,15 +248,17 @@ export default function Scanner() {
                         </div>
 
                         <div className="space-y-4">
-                            {ticket.user_data && ticket.user_data.map((field, idx) => (
-                                <div key={idx} className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">{field.label}</label>
+                            {ticket.user_data && Object.keys(ticket.user_data).map((key) => (
+                                <div key={key} className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-700 capitalize">
+                                        {key.replace(/_/g, ' ')}
+                                    </label>
                                     <input
-                                        type={field.type === 'number' ? 'number' : 'text'}
+                                        type="text"
                                         required
                                         className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                                        value={formData[field.label] || ''}
-                                        onChange={(e) => setFormData({ ...formData, [field.label]: e.target.value })}
+                                        value={formData[key] || ''}
+                                        onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
                                     />
                                 </div>
                             ))}

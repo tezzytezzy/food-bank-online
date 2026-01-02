@@ -47,13 +47,25 @@ const MARGIN_Y = MARGIN_Y_MM * MM_TO_PT;
 function formatUserData(userData: Record<string, any> | null | undefined): string {
     if (!userData) return "";
 
-    // Exactly 7 characters by padding and truncating
-    const numPaddingTruncating = 7;
+    // Calculate the number of key-value pairs and determine the length for each pair
+    // 21 characters total for all key-value pairs
+    const numKeys = Object.keys(userData).length;
+    const numKeyValueLength = Math.floor(21 / numKeys);
+
     return Object.entries(userData).map(([key, value]) => {
         const initials = key.split('_').map(w => w.charAt(0).toUpperCase()).join('') + ':';
         const val = (value === null || value === undefined || value === "") ? "" : String(value);
-        return `${initials} ${val}`.padEnd(numPaddingTruncating, ' ').substring(0, numPaddingTruncating);
+        return `${initials} ${val}`.padEnd(numKeyValueLength, ' ').substring(0, numKeyValueLength);
     }).join("");
+
+    // Exactly 7 characters by padding and truncating
+    // const numPaddingTruncating = 7;
+
+    // return Object.entries(userData).map(([key, value]) => {
+    //     const initials = key.split('_').map(w => w.charAt(0).toUpperCase()).join('') + ':';
+    //     const val = (value === null || value === undefined || value === "") ? "" : String(value);
+    //     return `${initials} ${val}`.padEnd(numPaddingTruncating, ' ').substring(0, numPaddingTruncating);
+    // }).join("");
 }
 
 export async function generateTicketsPDF(tickets: Ticket[], sessionDate: string, templateName: string): Promise<Uint8Array> {

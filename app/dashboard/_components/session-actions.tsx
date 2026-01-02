@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Printer, Loader2, Database } from 'lucide-react';
 import { generateSessionTicketsPdf } from '../sessions/actions';
 import { OfflineService } from '@/lib/OfflineService';
+import { useAuth } from '@clerk/nextjs';
 
 interface SessionActionsProps {
     sessionId: string;
@@ -12,6 +13,7 @@ interface SessionActionsProps {
 }
 
 export function SessionActions({ sessionId, sessionDate, templateName }: SessionActionsProps) {
+    const { getToken } = useAuth();
     const [isPrinting, setIsPrinting] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
 
@@ -65,7 +67,9 @@ export function SessionActions({ sessionId, sessionDate, templateName }: Session
     const handleDownloadOffline = async () => {
         try {
             setIsDownloading(true);
-            const result = await OfflineService.downloadSessionData(sessionId);
+            const token = await getToken({ template: 'supabase' });
+            if (!token) throw new Error('No authentication token found');
+            const result = await OfflineService.downloadSessionData(sessionId, token);
             alert(`Successfully downloaded ${result.count} tickets for offline scanning.`);
         } catch (error: any) {
             console.error('Failed to download offline data:', error);
