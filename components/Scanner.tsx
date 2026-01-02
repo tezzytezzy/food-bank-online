@@ -204,7 +204,7 @@ export default function Scanner() {
 
                 {/* MANUAL MODE */}
                 {mode === "manual" && (
-                    <div className="w-full max-w-sm space-y-4">
+                    <div className="w-full max-w-sm space-y-4 text-gray-900">
                         <h2 className="text-xl font-semibold">Enter Ticket Key</h2>
                         <input
                             autoFocus
@@ -218,7 +218,7 @@ export default function Scanner() {
                                 }
                             }}
                         />
-                        <button onClick={() => setMode("menu")} className="w-full py-3 text-gray-600">
+                        <button onClick={() => setMode("menu")} className="w-full py-3">
                             Back
                         </button>
                     </div>
@@ -234,8 +234,12 @@ export default function Scanner() {
                                     ? `Ticket #${ticket.ticket_number_str}`
                                     : ticket.assigned_start_time
                                         ? new Date(ticket.assigned_start_time).toLocaleString(undefined, {
-                                            dateStyle: 'medium',
-                                            timeStyle: 'short',
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: false,
                                             timeZone: 'UTC'
                                         })
                                         : 'Unknown Ticket Type'}
