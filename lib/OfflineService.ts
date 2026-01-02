@@ -15,6 +15,7 @@ export interface LocalTicket extends Ticket {
     assigned_start_time?: string;
     status: 'generated' | 'redeemed';
     user_data: Record<string, any>; // JSONB
+    lastScanTimestamp?: number | null; // Timestamp (millis)
 
     // Local flags
     synced?: boolean;
@@ -130,7 +131,11 @@ export const OfflineService = {
                 .from('tickets')
                 .update({
                     status: ticket.status,
-                    user_data: ticket.user_data
+                    user_data: ticket.user_data,
+                    // Note: column must correspond to exact DB name (quoted if mixed case created via "" in SQL, but supabase usually handles if simple text)
+                    // The result show "lastScanTimestamp", if created with quotes "lastScanTimestamp".
+                    // Standard postgrest request usually handles simple keys.
+                    lastScanTimestamp: ticket.lastScanTimestamp ? new Date(ticket.lastScanTimestamp).toISOString() : null
                 })
                 .eq('id', ticket.id);
 
