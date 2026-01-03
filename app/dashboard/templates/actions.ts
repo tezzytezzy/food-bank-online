@@ -83,7 +83,14 @@ export async function createTemplate(data: TemplateData) {
             total_slots: data.time_slots_config.total_slots,
             capacity_per_slot: data.time_slots_config.capacity_per_slot
         } : null,
-        required_user_fields: data.required_user_fields,
+        required_user_fields: data.required_user_fields.reduce((acc, field) => {
+            const key = field.label.toLowerCase().replace(/\s+/g, '_');
+            acc[key] = {
+                label: field.label,
+                data_type: field.type
+            };
+            return acc;
+        }, {} as Record<string, { label: string; data_type: string }>),
         dietary_info: data.dietary_info,
     };
 

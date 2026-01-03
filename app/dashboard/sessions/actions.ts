@@ -126,7 +126,7 @@ export async function createSession(data: SessionData) {
         const capacity = template.capacity || 0;
 
         // Prepare initial user data
-        const initialUserData = initialiseUserDataFromTemplate(template.required_user_fields as any[]);
+        const initialUserData = initialiseUserDataFromTemplate(template.required_user_fields as any);
 
         if (template.ticket_format === 'Numeric') {
             for (let i = 1; i <= capacity; i++) {
@@ -225,29 +225,31 @@ function generateUniqueTicketKey(existing: Set<string>): string {
     return key;
 }
 
-function initialiseUserDataFromTemplate(templateFields: any[]): Record<string, any> {
+function initialiseUserDataFromTemplate(templateFields: any): Record<string, any> {
     const userDataObject: Record<string, any> = {};
-    if (!Array.isArray(templateFields)) return userDataObject;
 
-    for (const field of templateFields) {
-        if (!field.label) continue;
+    if (!templateFields) return userDataObject;
 
-        // 1. Lowercase
-        let key = field.label.toLowerCase();
+    // Handle Legacy Array
+    if (Array.isArray(templateFields)) {
+        for (const field of templateFields) {
+            if (!field.label) continue;
+            let key = field.label.toLowerCase();
+            key = key.replace(/[^a-z0-9\s-]/g, '');
+            key = key.replace(/[\s-]+/g, '_');
+            key = key.replace(/^_+|_+$/g, '');
 
-        // 2. Remove non-alphanumeric/non-space (except hyphen)
-        key = key.replace(/[^a-z0-9\s-]/g, '');
-
-        // 3. Replace spaces/hyphens with underscore
-        key = key.replace(/[\s-]+/g, '_');
-
-        // 4. Trim underscores
-        key = key.replace(/^_+|_+$/g, '');
-
-        if (key) {
-            userDataObject[key] = null;
+            if (key) {
+                userDataObject[key] = null;
+            }
         }
+    } else if (typeof templateFields === 'object') {
+        // Handle New Object Map
+        Object.keys(templateFields).forEach(key => {
+            userDataObject[key] = null;
+        });
     }
+
     return userDataObject;
 }
 

@@ -57,15 +57,6 @@ function formatUserData(userData: Record<string, any> | null | undefined): strin
         const val = (value === null || value === undefined || value === "") ? "" : String(value);
         return `${initials} ${val}`.padEnd(numKeyValueLength, ' ').substring(0, numKeyValueLength);
     }).join("");
-
-    // Exactly 7 characters by padding and truncating
-    // const numPaddingTruncating = 7;
-
-    // return Object.entries(userData).map(([key, value]) => {
-    //     const initials = key.split('_').map(w => w.charAt(0).toUpperCase()).join('') + ':';
-    //     const val = (value === null || value === undefined || value === "") ? "" : String(value);
-    //     return `${initials} ${val}`.padEnd(numPaddingTruncating, ' ').substring(0, numPaddingTruncating);
-    // }).join("");
 }
 
 export async function generateTicketsPDF(tickets: Ticket[], sessionDate: string, templateName: string): Promise<Uint8Array> {
