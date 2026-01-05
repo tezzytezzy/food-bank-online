@@ -101,6 +101,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-4">
                     <a href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">Public Home</a>
+                    <a href="/scanner" className="text-sm font-medium text-slate-600 hover:text-slate-900">Check-In</a>
                     <a href="/dashboard/team" className="text-sm font-medium text-slate-600 hover:text-slate-900">Team</a>
                     <UserButton afterSignOutUrl="/" />
                 </div>
@@ -210,6 +211,18 @@ export default async function DashboardPage() {
                     )}
                 </section>
             </main>
-        </div>
+
+            {/* Mobile Scan FAB */}
+            <a
+                href="/scanner"
+                className="fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-slate-800 hover:scale-105 transition-all md:hidden z-50"
+                aria-label="Open Scanner"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+                </svg>
+            </a>
+        </div >
     );
 }
