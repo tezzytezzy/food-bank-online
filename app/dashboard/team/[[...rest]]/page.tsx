@@ -15,6 +15,8 @@ export default function TeamPage() {
             </header>
             <main className="flex-1 p-8 w-full flex justify-center">
                 <OrganizationProfile
+                    path="/dashboard/team"
+                    routing="path"
                     appearance={{
                         elements: {
                             rootBox: "w-full max-w-5xl shadow-none",
