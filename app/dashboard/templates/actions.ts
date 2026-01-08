@@ -106,3 +106,43 @@ export async function createTemplate(data: TemplateData) {
     revalidatePath('/dashboard');
     redirect('/dashboard');
 }
+
+export async function removeTemplate(templateId: string) {
+    const { userId, getToken } = await auth();
+
+    if (!userId) {
+        throw new Error('Unauthorized');
+    }
+
+    const token = await getToken({ template: 'supabase' });
+    if (!token) throw new Error('No Supabase token found');
+
+    const { createServerClient } = await import("@supabase/ssr");
+    const sbClient = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() { return [] },
+                setAll() { }
+            },
+            global: {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        }
+    );
+
+    const { error } = await sbClient
+        .from('templates')
+        .update({ status: 'removed' })
+        .eq('id', templateId);
+
+    if (error) {
+        console.error('Template Removal Error:', error);
+        throw new Error('Failed to remove template');
+    }
+
+    revalidatePath('/dashboard');
+}

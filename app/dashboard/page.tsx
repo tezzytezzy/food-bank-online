@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { Plus, Calendar, FileText } from "lucide-react";
 import { CancelSessionButton } from "./sessions";
 import { SessionActions } from "./_components/session-actions";
+import TemplateCard from "./_components/TemplateCard";
 
 export default async function DashboardPage() {
     const { userId, getToken } = await auth();
@@ -72,7 +73,8 @@ export default async function DashboardPage() {
     const { data: templates } = await supabase
         .from('templates')
         .select('*')
-        .eq('org_id', orgId);
+        .eq('org_id', orgId)
+        .neq('status', 'removed');
 
     // Fetch Upcoming Sessions
     const { data: upcomingSessions } = await supabase
@@ -188,24 +190,7 @@ export default async function DashboardPage() {
                         /* Active State */
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {templates.map((template) => (
-                                <div key={template.id} className="bg-white rounded-lg border border-slate-200 p-6 flex flex-col justify-between hover:border-slate-300 transition-colors">
-                                    <div>
-                                        <h3 className="font-semibold text-lg text-slate-900 mb-2">{template.name}</h3>
-                                        <div className="text-sm text-slate-500 space-y-1 mb-4">
-                                            {template.default_duration && <p>Duration: {template.default_duration} mins</p>}
-                                            {template.dietary_info && <p>Dietary: {template.dietary_info}</p>}
-                                        </div>
-                                    </div>
-                                    <div className="pt-4 border-t border-slate-100 mt-2">
-                                        <a
-                                            href={`/dashboard/sessions/create?template_id=${template.id}`}
-                                            className="w-full flex items-center justify-center gap-2 border border-slate-200 text-slate-700 font-medium py-2 rounded-md hover:bg-slate-50 transition-colors"
-                                        >
-                                            <Calendar className="w-4 h-4" />
-                                            Schedule Session
-                                        </a>
-                                    </div>
-                                </div>
+                                <TemplateCard key={template.id} template={template} />
                             ))}
                         </div>
                     )}
