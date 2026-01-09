@@ -84,7 +84,7 @@ export function SessionActions({ sessionId, sessionDate, templateName }: Session
             <button
                 onClick={handlePrint}
                 disabled={isPrinting}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-75 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
                 title="Print Tickets (PDF)"
             >
                 {isPrinting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
@@ -93,7 +93,7 @@ export function SessionActions({ sessionId, sessionDate, templateName }: Session
             <button
                 onClick={handleDownloadOffline}
                 disabled={isDownloading}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-75 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
                 title="Download for Offline Scanning"
             >
                 {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}

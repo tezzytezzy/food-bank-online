@@ -143,7 +143,7 @@ export default function Scanner() {
                         <div className="grid gap-4">
                             <button
                                 onClick={() => setMode("scan")}
-                                className="p-6 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition flex flex-col items-center gap-3"
+                                className="p-6 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition flex flex-col items-center gap-3 cursor-pointer"
                             >
                                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -156,7 +156,7 @@ export default function Scanner() {
 
                             <button
                                 onClick={() => setMode("manual")}
-                                className="p-6 bg-white text-gray-700 rounded-xl shadow hover:bg-gray-50 transition flex flex-col items-center gap-3 border border-gray-200"
+                                className="p-6 bg-white text-gray-700 rounded-xl shadow hover:bg-gray-50 transition flex flex-col items-center gap-3 border border-gray-200 cursor-pointer"
                             >
                                 <Keyboard className="w-8 h-8 text-gray-400" />
                                 <span className="text-lg font-medium">Manual Entry</span>
@@ -176,7 +176,7 @@ export default function Scanner() {
                                         alert(`Synced: ${r.success} Success, ${r.failed} Failed`);
                                     } catch (e) { console.error(e); alert("Sync Error"); }
                                 }
-                            }} className="text-sm text-gray-500 underline">Sync Now</button>
+                            }} className="text-sm text-gray-500 underline cursor-pointer">Sync Now</button>
                         </div>
                     </div>
                 )}
@@ -203,7 +203,7 @@ export default function Scanner() {
                         <input autoFocus type="text" className="w-full p-4 text-2xl text-center border rounded-lg active:border-blue-500 uppercase tracking-widest" maxLength={6} placeholder="A1B2C3" onChange={(e) => {
                             if (e.target.value.length === 6) handleLookup(e.target.value);
                         }} />
-                        <button onClick={() => setMode("menu")} className="w-full py-3">Back</button>
+                        <button onClick={() => setMode("menu")} className="w-full py-3 cursor-pointer">Back</button>
                     </div>
                 )}
 

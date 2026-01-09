@@ -30,7 +30,7 @@ export default function TemplateCard({ template }: TemplateCardProps) {
                 {/* Remove Button */}
                 <button
                     onClick={() => setShowConfirm(true)}
-                    className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all focus:opacity-100"
+                    className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all focus:opacity-100 cursor-pointer"
                     title="Remove Template"
                     aria-label="Remove Template"
                 >
