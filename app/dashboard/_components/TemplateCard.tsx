@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Trash2, Loader2 } from 'lucide-react';
+import { Calendar, Trash2, Loader2, Clock, Users, MapPin } from 'lucide-react';
 import { removeTemplate } from '../templates/actions';
 
 interface TemplateCardProps {
@@ -39,8 +39,31 @@ export default function TemplateCard({ template }: TemplateCardProps) {
 
                 <div>
                     <h3 className="font-semibold text-lg text-slate-900 mb-2 pr-8">{template.name}</h3>
-                    <div className="text-sm text-slate-500 space-y-1 mb-4">
-                        {/* {template.default_duration && <p>Duration: {template.default_duration} mins</p>} */}
+                    <div className="space-y-2 text-sm text-slate-600 mb-4">
+                        {/* Time */}
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-slate-400" />
+                            <span>
+                                {template.start_time?.substring(0, 5)}
+                                {template.end_time && ` - ${template.end_time.substring(0, 5)}`}
+                            </span>
+                        </div>
+
+                        {/* Capacity & Format */}
+                        <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-slate-400" />
+                            <span>
+                                {template.capacity} · {template.ticket_format}
+                            </span>
+                        </div>
+
+                        {/* Delivery Mode (Optional) */}
+                        {template.delivery_mode && (
+                            <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-slate-400" />
+                                <span>{template.delivery_mode}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="pt-4 border-t border-slate-100 mt-2">
