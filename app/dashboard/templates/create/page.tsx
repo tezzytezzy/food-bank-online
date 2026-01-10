@@ -13,7 +13,7 @@ export default function CreateTemplatePage() {
 
     // Form State
     const [name, setName] = useState('');
-    const [ticketFormat, setTicketFormat] = useState<'Numeric' | 'TimeAllotted'>('Numeric');
+    const [ticketFormat, setTicketFormat] = useState<'Numeric' | 'Time-Allotted'>('Numeric');
     const [issuanceOrder, setIssuanceOrder] = useState<'Sequential' | 'NonSequential'>('Sequential');
     const [deliveryMode, setDeliveryMode] = useState<'Digital' | 'Paper' | 'Hybrid'>('Paper');
 
@@ -51,9 +51,9 @@ export default function CreateTemplatePage() {
         setCustomFields(newFields);
     };
 
-    // Auto-calculate End Time for TimeAllotted
+    // Auto-calculate End Time for Time-Allotted
     useEffect(() => {
-        if (ticketFormat === 'TimeAllotted' && startTime && slotDuration && totalSlots) {
+        if (ticketFormat === 'Time-Allotted' && startTime && slotDuration && totalSlots) {
             const [hours, minutes] = startTime.split(':').map(Number);
             const totalMinutesRaw = (typeof slotDuration === 'number' ? slotDuration : 0) * (typeof totalSlots === 'number' ? totalSlots : 0);
 
@@ -66,7 +66,7 @@ export default function CreateTemplatePage() {
             const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
 
             setEndTime(`${endHours}:${endMinutes}`);
-        } else if (ticketFormat === 'TimeAllotted') {
+        } else if (ticketFormat === 'Time-Allotted') {
             // Reset or keep empty if inputs invalid
             // check if just one changed
         }
@@ -211,13 +211,14 @@ export default function CreateTemplatePage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setTicketFormat('TimeAllotted')}
+                                        onClick={() => setTicketFormat('Time-Allotted')}
                                         className={cn(
                                             "px-4 py-2 text-sm font-medium rounded transition-colors",
-                                            ticketFormat === 'TimeAllotted' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
+                                            ticketFormat === 'Time-Allotted' ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"
                                         )}
                                     >
                                         Time-Allotted
+
                                     </button>
                                 </div>
                                 <p className="mt-2 text-xs text-slate-500">
@@ -288,14 +289,14 @@ export default function CreateTemplatePage() {
                                     required
                                     value={endTime}
                                     onChange={(e) => setEndTime(e.target.value)}
-                                    disabled={ticketFormat === 'TimeAllotted'}
+                                    disabled={ticketFormat === 'Time-Allotted'}
                                     className={cn(
                                         "w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500",
-                                        ticketFormat === 'TimeAllotted' && "bg-slate-100 text-slate-500 cursor-not-allowed"
+                                        ticketFormat === 'Time-Allotted' && "bg-slate-100 text-slate-500 cursor-not-allowed"
                                     )}
                                 />
                                 <p className="mt-1 text-xs text-slate-500">
-                                    {ticketFormat === 'TimeAllotted' ? "Auto-calculated." : "Default end time."}
+                                    {ticketFormat === 'Time-Allotted' ? "Auto-calculated." : "Default end time."}
                                 </p>
                             </div>
                         </div>

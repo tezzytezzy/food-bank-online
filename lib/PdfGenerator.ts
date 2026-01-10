@@ -137,7 +137,7 @@ export async function generateTicketsPDF(tickets: Ticket[], sessionDate: string,
             let ticketDisplayText = "";
 
             if (ticket.assigned_start_time) {
-                // TimeAllotted: Format from timestamp e.g. "09:00 AM 2025-Dec-08"
+                // Time-Allotted: Format from timestamp e.g. "09:00 AM 2025-Dec-08"
                 const tDate = new Date(ticket.assigned_start_time);
                 // Adjust for UTC if stored as TZ, or assuming DB stores absolute time.
                 // "2025-12-08T09:00:00Z".

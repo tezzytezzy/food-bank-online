@@ -78,7 +78,7 @@ export async function createSession(data: SessionData) {
     if (data.start_time) {
         let duration = 0;
 
-        if (template.ticket_format === 'TimeAllotted' && template.time_slots_config) {
+        if (template.ticket_format === 'Time-Allotted' && template.time_slots_config) {
             // CAST config to any because Supabase types might be inferred loosely
             const config = template.time_slots_config as any;
             duration = (Number(config.slot_duration) || 0) * (Number(config.total_slots) || 0);
@@ -141,7 +141,7 @@ export async function createSession(data: SessionData) {
                     status: 'generated'
                 });
             }
-        } else if (template.ticket_format === 'TimeAllotted' && template.time_slots_config && data.start_time) {
+        } else if (template.ticket_format === 'Time-Allotted' && template.time_slots_config && data.start_time) {
             const config = template.time_slots_config as any;
             const slotDuration = Number(config.slot_duration) || 0;
             const totalSlots = Number(config.total_slots) || 0;

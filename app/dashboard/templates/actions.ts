@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 
 export type TemplateData = {
     name: string;
-    ticket_format: 'Numeric' | 'TimeAllotted';
+    ticket_format: 'Numeric' | 'Time-Allotted';
     issuance_order: 'Sequential' | 'NonSequential';
     delivery_mode: 'Digital' | 'Paper' | 'Hybrid';
     capacity?: number;
