@@ -436,14 +436,14 @@ export default function CreateTemplatePage() {
                         <button
                             type="button"
                             onClick={() => router.back()}
-                            className="px-6 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                            className="px-6 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="bg-slate-900 text-white px-8 py-2 rounded-md font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="bg-slate-900 text-white px-8 py-2 rounded-md font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
                         >
                             {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                             Create Template
