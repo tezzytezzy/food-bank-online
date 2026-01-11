@@ -50,7 +50,13 @@ export default async function DashboardPage() {
     const role = orgRole?.split(':')[1] || 'member';
 
     // Init Supabase with Token (User is already authed via Middleware)
-    const token = await getToken({ template: 'supabase' });
+    let token;
+    try {
+        token = await getToken({ template: 'supabase' });
+    } catch (error) {
+        // If getToken fails (e.g. during sign out transition), redirect to sign in
+        redirect('/sign-in');
+    }
     const cookieStore = await cookies();
 
     const supabase = createServerClient(
