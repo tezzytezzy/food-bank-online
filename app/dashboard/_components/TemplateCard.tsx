@@ -1,4 +1,5 @@
 'use client';
+// Force recompile
 
 import { useState } from 'react';
 import { Calendar, Trash2, Loader2, Clock, Users, MapPin } from 'lucide-react';
