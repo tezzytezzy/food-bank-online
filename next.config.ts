@@ -10,6 +10,8 @@ const withPWA = require("next-pwa")({
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  // @ts-ignore
+  allowedDevOrigins: ["superadjacently-acerous-marylynn.ngrok-free.dev"],
 };
 
 export default withPWA(nextConfig);
