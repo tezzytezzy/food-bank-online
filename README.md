@@ -84,6 +84,10 @@ Ensure you have the following installed:
     *Note: You will need to set up a Clerk application and a Supabase project to obtain these keys.*
 
 4.  **Run the Development Server**
+<<<<<<< HEAD
+=======
+    Run the command `./ngrok http 3000` before executing the development server command. It instructs the ngrok agent to create a secure, public URL (tunnel) that forwards incoming HTTP/HTTPS traffic to a local web server running on port 3000 on the local machine. In other words, it allows to expose local development environments to the internet for testing webhooks, sharing progress, or accessing local applications remotely.
+>>>>>>> 8995504 (docs: Add ngrok command for running the development server)
 
     ```bash
     npm run dev
